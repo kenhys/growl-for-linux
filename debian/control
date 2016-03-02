@@ -30,7 +30,7 @@ Depends:
  libxml2,
  libsqlite3-0,
  libdbus-glib-1-2,
- ${shlib:Depends},
+ ${shlibs:Depends},
  ${misc:Depends}
 Description: Linux compatible of Growl
  Growl For Linux is Linux-compatible of Growl. Growl is a notification system for Mac OS X. 
