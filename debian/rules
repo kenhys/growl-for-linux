@@ -12,7 +12,7 @@
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
 
 %:
-	dh  $@
+	dh  $@ --with autoreconf
 
 override_dh_install:
 	find $(CURDIR)/debian -name *.la -delete

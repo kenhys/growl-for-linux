@@ -1,0 +1,12 @@
+--- a/configure.ac
++++ b/configure.ac
+@@ -20,6 +20,9 @@
+     yes) CFLAGS="-Werror ${CFLAGS}";;
+ esac
+ 
++# Enable noexecstack.
++LDFLAGS="$LDFLAGS -Wl,-z,noexecstack"
++
+ # Checks for libraries.
+ 
+ PKG_CHECK_MODULES(GLIB2, glib-2.0)

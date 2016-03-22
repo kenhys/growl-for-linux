@@ -15,7 +15,8 @@ Build-Depends:
  libsqlite3-dev,
  libdbus-glib-1-dev,
  desktop-file-utils,
- libssl-dev
+ libssl-dev,
+ dh-autoreconf
 Standards-Version: 3.9.7
 Homepage: http://mattn.github.com/growl-for-linux
 
