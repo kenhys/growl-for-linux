@@ -1,0 +1,18 @@
+Add missing Keywords field
+
+It fixes I:desktop-entry-lacks-keywords-entry lintian warning
+
+ref.
+  https://specifications.freedesktop.org/desktop-entry-spec/latest/ar01s05.html
+  https://wiki.gnome.org/Initiatives/GnomeGoals/DesktopFileKeywords
+
+--- a/data/gol.desktop.in
++++ b/data/gol.desktop.in
+@@ -4,6 +4,7 @@
+ Name=Growl For Linux
+ Comment=Growl Desktop Notification System For Linux
+ Categories=GNOME;GTK;Utility;
++Keywords=Notifications;Banner;Message;Tray;Popup;
+ Exec=@prefix@/bin/gol
+ Icon=@prefix@/share/growl-for-linux/data/icon.png
+ X-GNOME-Autostart-enabled=true

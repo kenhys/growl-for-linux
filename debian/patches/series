@@ -1,1 +1,2 @@
-enable-noexecstack
+add-missing-desktop-keyword.patch
+fix-a-typo-about-recieved.patch
