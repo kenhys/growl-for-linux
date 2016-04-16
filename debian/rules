@@ -11,6 +11,8 @@ export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
 
 override_dh_install:
 	find $(CURDIR)/debian -name *.la -delete
+	find $(CURDIR)/debian -name *.a -delete
+	find $(CURDIR)/debian -name libtweets* -delete
 	dh_install
 
 # Do not call needless ldconfig
