@@ -1,5 +1,6 @@
 growl-for-linux (0.8.2-1) unstable; urgency=medium
 
+  * Initial upload to Debian (Closes: #816514)
   * debian/control
     - Fixed package-depends-on-hardcoded-libc lintian warning
     - Upgraded to debhelper 9
