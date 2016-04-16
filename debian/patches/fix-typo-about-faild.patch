@@ -1,0 +1,12 @@
+Fix a typo in error message
+--- a/gol.c
++++ b/gol.c
+@@ -1216,7 +1216,7 @@
+     send(ci.sock, cmd_result, strlen(cmd_result), 0);
+     g_free(cmd_result);
+   } else {
+-    g_critical("g_strdup or g_strdup_printf faild.");
++    g_critical("g_strdup or g_strdup_printf failed.");
+     return false;
+   }
+   if (!valid) return false;
