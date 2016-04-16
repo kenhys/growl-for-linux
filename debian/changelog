@@ -1,4 +1,4 @@
-growl-for-linux (0.8.2-1) unstable; urgency=medium
+growl-for-linux (0.8.1-2) unstable; urgency=medium
 
   * Initial upload to Debian (Closes: #816514)
   * debian/control
