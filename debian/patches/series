@@ -2,3 +2,4 @@ disable-display-execstack.patch
 add-missing-desktop-keyword.patch
 fix-a-typo-about-recieved.patch
 fix-typo-about-faild.patch
+add-pie-flags-for-gol.patch
