@@ -32,7 +32,7 @@ Depends:
  libdbus-glib-1-2,
  ${shlibs:Depends},
  ${misc:Depends}
-Description: Linux compatible of Growl
+Description: Notification system which is extendable by a plugin
  Growl For Linux is Linux-compatible of Growl. Growl is a notification
  system for Mac OS X.
  .
