@@ -17,3 +17,8 @@ export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
 override_dh_install:
 	find $(CURDIR)/debian -name *.la -delete
 	dh_install
+
+# Do not call needless ldconfig
+# Fix W:postinst-has-useless-call-to-ldconfig lintian warning
+override_dh_makeshlibs:
+	dh_makeshlibs --noscripts
