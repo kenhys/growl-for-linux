@@ -1,3 +1,33 @@
+growl-for-linux (0.8.2-1) unstable; urgency=medium
+
+  * debian/control
+    - Fixed package-depends-on-hardcoded-libc lintian warning
+    - Upgraded to debhelper 9
+    - Upgraded to standards-version 3.9.7
+    - Added missing TLS dependency
+    - Updated package description about growl-for-linux
+  * debian/copyright
+    - Rewrited to machine-readable debian/copyright
+  * debian/changelog
+    - Fixed wrong email address
+  * debian/rules
+    - Fixed non-empty-dependency_libs-in-la-file lintian warning
+    - Added hardening flags (+all,-pie)
+    - Drop deprecated libtweets subscriber
+    - Fixed not to call needless ldconfig
+  * debian/patches/add-missing-desktop-keyword.patch
+    - Added missing "Keywords=" field
+  * debian/patches/add-pie-flags-for-gol.patch
+    - Added hardening flags (-pie,-fPIE) for gol
+  * debian/patches/disable-display-execstack.patch
+    - Fixed needless executable stack lintian warning
+  * debian/patches/fix-a-typo-about-recieved.patch
+    - Fixed a typo in SQLite schema
+  * debian/patches/fix-typo-about-faild.patch
+    - Fixed a typo in error message
+
+ -- HAYASHI Kentaro <hayashi@clear-code.com>  Sat, 16 Apr 2016 16:09:54 +0900
+
 growl-for-linux (0.8.1-1trusty) trusty; urgency=medium
 
   * backport to dist trusty
