@@ -1,0 +1,24 @@
+Fix executable stack lintian warnings
+
+--- a/display/balloon/Makefile.am
++++ b/display/balloon/Makefile.am
+@@ -1,7 +1,7 @@
+ displaydir = $(pkglibdir)/display
+ display_LTLIBRARIES = libballoon.la
+ libballoon_la_SOURCES = balloon.c balloon.xpm display_balloon.xpm
+-libballoon_la_LDFLAGS = -L../../plugins
++libballoon_la_LDFLAGS = -L../../plugins -Wl,-z,noexecstack
+ libballoon_la_CFLAGS = $(GTK2_CFLAGS) $(LIBCURL_CFLAGS) $(SQLITE3_CFLAGS) -I$(srcdir)/../..
+ libballoon_la_LIBADD = $(GTK2_LIBS) $(LIBCURL_LIBS) $(SQLITE3_LIBS) -lgolplug
+ 
+--- a/display/fog/Makefile.am
++++ b/display/fog/Makefile.am
+@@ -1,7 +1,7 @@
+ displaydir = $(pkglibdir)/display
+ display_LTLIBRARIES = libfog.la
+ libfog_la_SOURCES = fog.c display_fog.xpm
+-libfog_la_LDFLAGS = -L../../plugins
++libfog_la_LDFLAGS = -L../../plugins -Wl,-z,noexecstack
+ libfog_la_CFLAGS = $(GTK2_CFLAGS) $(LIBCURL_CFLAGS) $(SQLITE3_CFLAGS) -I$(srcdir)/../..
+ libfog_la_LIBADD = $(GTK2_LIBS) $(LIBCURL_LIBS) $(SQLITE3_LIBS) -lgolplug
+ 
