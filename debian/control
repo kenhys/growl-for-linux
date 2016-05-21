@@ -1,8 +1,7 @@
 Source: growl-for-linux
 Section: gnome
 Priority: optional
-Maintainer: Yasuhiro Matsumoto <mattn.jp@gmail.com>
-Uploaders: HAYASHI Kentaro <hayashi@clear-code.com>
+Maintainer: Kentaro Hayashi <hayashi@clear-code.com>
 Build-Depends:
  debhelper (>= 9),
  autotools-dev,
