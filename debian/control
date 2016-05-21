@@ -16,7 +16,7 @@ Build-Depends:
  libdbus-glib-1-dev,
  desktop-file-utils,
  libssl-dev
-Standards-Version: 3.9.7
+Standards-Version: 3.9.8
 Homepage: http://mattn.github.com/growl-for-linux
 
 Package: growl-for-linux
