@@ -1,0 +1,3 @@
+# compat 10 feature is used for build package correctly
+growl-for-linux source: package-needs-versioned-debhelper-build-depends 10
+growl-for-linux source: package-uses-experimental-debhelper-compat-version 10
