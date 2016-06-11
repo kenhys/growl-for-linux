@@ -1,3 +1,31 @@
+growl-for-linux (0.8.4-1) unstable; urgency=medium
+
+  * Initial upload to Debian (Closes: #816514)
+  * debian/control
+    - Removed hardcoded dependency to libraries in Depends: field.
+    - Bumped compat version to 10.
+    - Upgraded to standards-version 3.9.8
+    - Added missing TLS dependency
+    - Updated package description about growl-for-linux
+  * debian/copyright
+    - Updated to machine-readable debian/copyright
+  * debian/rules
+    - Fixed non-empty-dependency_libs-in-la-file lintian warning
+    - Added hardening flags
+    - Dropped deprecated libtweets subscriber
+    - Fixed not to call needless ldconfig
+  * debian/watch
+    - Added watch file
+  * debian/patches/disable-display-execstack.patch
+    - Fixed executable stack lintian warnings for display plugins
+  * debian/patches/drop-removed-growl4linuxjpg.patch
+    - Fixed not to refer already removed image
+  * debian/source.lintian-overrides
+    - Overrode false positive lintian warnings because compat 10 feature
+      is required to build
+
+ -- Kentaro Hayashi <hayashi@clear-code.com>  Sat, 11 Jun 2016 21:11:44 +0900
+
 growl-for-linux (0.8.1-1trusty) trusty; urgency=medium
 
   * backport to dist trusty
