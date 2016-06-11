@@ -1,0 +1,24 @@
+Author: HAYASHI Kentaro <kenhys@gmail.com>
+Description: Drop removed growl4linux.jpg image from the rule
+Origin: https://github.com/mattn/growl-for-linux/commit/0d2721e2f51c9c53d599866ecbfba12c44109b17
+Forwarded: yes
+
+--- a/data/Makefile.am
++++ b/data/Makefile.am
+@@ -1,4 +1,4 @@
+ icondir = $(pkgdatadir)/data
+-icon_DATA = growl4linux.jpg icon.png icon_dnd.png mattn.png
++icon_DATA = icon.png icon_dnd.png mattn.png
+ 
+ EXTRA_DIST = $(icon_DATA) display_balloon.png display_default.png display_nico2.png gol.ico screenshot.png
+--- a/gol.c
++++ b/gol.c
+@@ -1151,7 +1151,7 @@
+   gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_dialog),
+       "http://mattn.kaoriya.net/");
+   {
+-    GdkPixbuf* logo = pixbuf_from_datadir("growl4linux.jpg", NULL);
++    GdkPixbuf* logo = pixbuf_from_datadir("icon.png", NULL);
+     gtk_about_dialog_set_logo (GTK_ABOUT_DIALOG(about_dialog), logo);
+     g_object_unref(G_OBJECT(logo));
+   }
