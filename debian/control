@@ -16,7 +16,7 @@ Build-Depends:
  desktop-file-utils,
  libssl-dev
 Standards-Version: 3.9.8
-Homepage: http://mattn.github.com/growl-for-linux
+Homepage: http://mattn.github.io/growl-for-linux/
 
 Package: growl-for-linux
 Architecture: any
