@@ -16,6 +16,12 @@ include /usr/share/dpkg/buildflags.mk
 %:
 	dh  $@
 
+override_dh_auto_configure:
+	dh_auto_configure
+	# Drop -fPIE explicitly because it conflicts with shared
+	# libraries under display/*. libgolplug.a is linked with them.
+	sed -i -e 's/-fPIE//g' plugins/Makefile
+
 override_dh_install:
 	dh_install
 	find $(CURDIR)/debian -name *.la -delete
