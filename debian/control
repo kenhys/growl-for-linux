@@ -23,9 +23,10 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends}
-Description: Notification system which is extendable by a plugin
- Growl For Linux is Linux-compatible of Growl. Growl is a notification
- system for Mac OS X.
+Description: Pluggable notification system which supports GNTP
+ Growl For Linux is a linux-compatible notification system of Growl.
+ Growl is a notification system for Mac OS X. It uses GNTP (Growl
+ Notification Transport Protocol) for notification.
  .
  Growl For Linux provides four kind of display styles - balloon, fog,
  libnotify and nico2.
