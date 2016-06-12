@@ -35,5 +35,4 @@ growl-for-linux (0.8.4-1) unstable; urgency=medium
   * debian/upstream/metadata
     - Added metadata file
 
- -- Kentaro Hayashi <hayashi@clear-code.com>  Sat, 11 Jun 2016 21:11:44 +0900
-
+ -- Kentaro Hayashi <hayashi@clear-code.com>  Sun, 12 Jun 2016 22:19:17 +0900
