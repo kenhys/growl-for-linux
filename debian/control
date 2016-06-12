@@ -4,7 +4,6 @@ Priority: optional
 Maintainer: Kentaro Hayashi <hayashi@clear-code.com>
 Build-Depends:
  debhelper (>= 9.20160403),
- autotools-dev,
  libglib2.0-dev,
  libgtk2.0-dev,
  libnotify-dev,
