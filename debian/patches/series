@@ -1,2 +1,3 @@
 drop-removed-growl4linuxjpg.patch
 disable-display-execstack.patch
+enable-pie-for-gol.patch

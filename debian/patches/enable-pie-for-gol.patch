@@ -1,0 +1,16 @@
+Author: Kentaro Hayashi <hayashi@clear-code.com>
+Description: Enable -pie explicitly for gol because hardening=+all,-pie is specified to avoid conflicts with libgolplug (libgolplug couldn't be built without hardening=-pie flag)
+Forwarded: no
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -5,8 +5,9 @@
+ 
+ bin_PROGRAMS = gol
+ gol_SOURCES = gol.c gol.h compatibility.h
+-gol_CFLAGS = $(GTHREAD2_CFLAGS) $(GTK2_CFLAGS) $(OPENSSL_CFLAGS) $(SQLITE3_CFLAGS) $(APP_INDICATOR_CFLAGS) -DDATADIR='"$(pkgdatadir)"' -DLIBDIR='"$(pkglibdir)"'
++gol_CFLAGS = $(GTHREAD2_CFLAGS) $(GTK2_CFLAGS) $(OPENSSL_CFLAGS) $(SQLITE3_CFLAGS) $(APP_INDICATOR_CFLAGS) -DDATADIR='"$(pkgdatadir)"' -DLIBDIR='"$(pkglibdir)"' -fPIE
+ gol_LDADD = $(GTHREAD2_LIBS) $(GTK2_LIBS) $(OPENSSL_LIBS) $(SQLITE3_LIBS) $(GMODULE2_LIBS) $(APP_INDICATOR_LIBS)
++gol_LDFLAGS = -pie
+ 
+ EXTRA_DIST = gol.rc Makefile.w32 README.mkd TODO data/gol.desktop VERSION
+ 
