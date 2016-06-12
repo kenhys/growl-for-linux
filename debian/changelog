@@ -18,7 +18,6 @@ growl-for-linux (0.8.4-1) unstable; urgency=medium
     - Fixed non-empty-dependency_libs-in-la-file lintian warning
     - Added hardening flags
     - Dropped deprecated libtweets subscriber
-    - Fixed not to call needless ldconfig
     - Removed auto generated header description
   * debian/watch
     - Added watch file
@@ -32,6 +31,8 @@ growl-for-linux (0.8.4-1) unstable; urgency=medium
   * debian/source.lintian-overrides
     - Overrode false positive lintian warnings because compat 10 feature
       is required to build
+  * debian/growl-for-linux.lintian-overrides
+    - Overrode a harmless lintian warning about meaningless ldconfig trigger
   * debian/upstream/metadata
     - Added metadata file
 
