@@ -1,0 +1,2 @@
+# Suppress a harmless lintian warning
+growl-for-linux: package-has-unnecessary-activation-of-ldconfig-trigger

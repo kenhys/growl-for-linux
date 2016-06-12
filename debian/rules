@@ -17,7 +17,3 @@ override_dh_install:
 	find $(CURDIR)/debian -name *.a -delete
 	find $(CURDIR)/debian -name libtweets* -delete
 
-# Do not call needless ldconfig
-# Fix W:package-has-unnecessary-activation-of-ldconfig-trigger lintian warning
-override_dh_makeshlibs:
-	dh_makeshlibs --noscripts
