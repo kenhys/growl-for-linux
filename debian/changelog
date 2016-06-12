@@ -2,9 +2,10 @@ growl-for-linux (0.8.4-1) unstable; urgency=medium
 
   * Initial upload to Debian (Closes: #816514)
   * debian/changelog
-    - Removed past release changelog entries which are maintained by
-      Yasuhiro Matsumoto. Those entries are just maintained to provide
-      packages on PPA.
+    - Removed past release changelog entries which are originally
+      maintained by Yasuhiro Matsumoto who is upstream author of
+      growl-for-linux. Those entries are just maintained to provide
+      packages on Launchpad PPA.
   * debian/control
     - Removed hardcoded dependency to libraries in Depends: field.
     - Bumped compat version to 10.
