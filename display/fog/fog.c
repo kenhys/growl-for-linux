@@ -282,7 +282,17 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  GtkStyleContext *context = gtk_widget_get_style_context(di->widget.title);
+  GtkCssProvider *provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: black; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.title, GTK_STATE_NORMAL, color_black);
+#endif
   gtk_widget_modify_font(di->widget.title, font_sans12_desc);
   gtk_box_pack_start(GTK_BOX(hbox), di->widget.title, FALSE, FALSE, 0);
 
@@ -291,7 +301,17 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  context = gtk_widget_get_style_context(di->widget.text);
+  provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: black; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.text, GTK_STATE_NORMAL, color_black);
+#endif
   gtk_widget_modify_font(di->widget.text, font_sans8_desc);
   g_signal_connect(G_OBJECT(di->widget.text), "size-allocate", G_CALLBACK(label_size_allocate), NULL);
   gtk_label_set_line_wrap(GTK_LABEL(di->widget.text), TRUE);
