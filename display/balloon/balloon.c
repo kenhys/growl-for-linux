@@ -356,7 +356,11 @@ reset_display_info(DISPLAY_INFO* const di, NOTIFICATION_INFO* const ni) {
   di->hover   = FALSE;
   free_notification_info(di->ni);
   di->ni = ni;
+#if USE_GTK3
+  gtk_widget_hide(di->widget.popup);
+#else
   gtk_widget_hide_all(di->widget.popup);
+#endif
 #if GTK_CHECK_VERSION(3, 8, 0)
   gtk_widget_set_opacity(di->widget.popup, 0);
 #else
