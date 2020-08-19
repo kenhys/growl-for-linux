@@ -258,7 +258,11 @@ create_popup_skelton() {
   gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
   gtk_container_add(GTK_CONTAINER(ebox), vbox);
 
+#if USE_GTK3
+  GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
   GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
   if (!hbox) {
     free_display_info(di);
     return NULL;

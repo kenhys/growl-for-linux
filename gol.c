@@ -853,7 +853,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(setting_dialog))), notebook);
 
   {
+#ifdef USE_GTK3
+    GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
         hbox, gtk_label_new("Display"));
@@ -885,7 +889,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     g_object_set_data(G_OBJECT(setting_dialog), "thumbnail", image);
     gtk_box_pack_start(GTK_BOX(vbox), image, TRUE, TRUE, 0);
 
+#if USE_GTK3
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 0);
 
     GtkWidget* button = gtk_button_new_with_label("Set as Default");
@@ -897,7 +905,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
         G_CALLBACK(preview_clicked), select);
     gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
+#if USE_GTK3
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 0);
 
     /*
