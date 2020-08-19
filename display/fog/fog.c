@@ -36,10 +36,12 @@
 static GList* notifications;
 static GList* popup_collections;
 
+#ifndef USE_GTK3
 static GdkColor inst_color_lightgray_;
 static GdkColor inst_color_black_;
 static const GdkColor* const color_lightgray = &inst_color_lightgray_;
 static const GdkColor* const color_black     = &inst_color_black_;
+#endif
 
 static PangoFontDescription* font_sans12_desc;
 static PangoFontDescription* font_sans8_desc;
@@ -241,7 +243,17 @@ create_popup_skelton() {
   gtk_window_set_keep_above(GTK_WINDOW(di->widget.popup), TRUE);
 
   gtk_window_stick(GTK_WINDOW(di->widget.popup));
+#if USE_GTK3
+  GtkStyleContext *context = gtk_widget_get_style_context(di->widget.popup);
+  GtkCssProvider *provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { background-color: lightgray; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_bg(di->widget.popup, GTK_STATE_NORMAL, color_lightgray);
+#endif
 
   GtkWidget* const ebox = gtk_event_box_new();
   if (!ebox) {
@@ -406,8 +418,10 @@ display_show(NOTIFICATION_INFO* const ni) {
 
 G_MODULE_EXPORT gboolean
 display_init() {
+#ifndef USE_GTK3
   gdk_color_parse("lightgray", &inst_color_lightgray_);
   gdk_color_parse("black", &inst_color_black_);
+#endif
 
   font_sans12_desc = pango_font_description_new();
   pango_font_description_set_family(font_sans12_desc, "Sans");

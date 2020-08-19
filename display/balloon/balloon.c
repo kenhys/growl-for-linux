@@ -42,8 +42,10 @@ static GdkPixmap* pixmap;
 static GdkBitmap* bitmap;
 static gint pixmap_width, pixmap_height;
 
+#ifndef USE_GTK3
 static GdkColor inst_color_white_;
 static const GdkColor* const color_white = &inst_color_white_;
+#endif
 
 static PangoFontDescription* font_sans12_desc;
 static PangoFontDescription* font_sans8_desc;
@@ -428,7 +430,9 @@ display_show(NOTIFICATION_INFO* const ni) {
 
 G_MODULE_EXPORT gboolean
 display_init() {
+#ifndef USE_GTK3
   gdk_color_parse("white", &inst_color_white_);
+#endif
 
   font_sans12_desc = pango_font_description_new();
   pango_font_description_set_family(font_sans12_desc, "Sans");
