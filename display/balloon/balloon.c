@@ -402,9 +402,15 @@ display_init() {
   pango_font_description_set_family(font_sans8_desc, "Sans");
   pango_font_description_set_size(font_sans8_desc, 8 * PANGO_SCALE);
 
+#if GTK_CHECK_VERSION(3, 22, 0)
+  GdkDisplay *display = gdk_display_get_default();
+  GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+  gdk_monitor_get_geometry(monitor, &screen_rect);
+#else
   GdkScreen* const screen = gdk_screen_get_default();
   const gint monitor_num = gdk_screen_get_primary_monitor(screen);
   gdk_screen_get_monitor_geometry(screen, monitor_num, &screen_rect);
+#endif
 
   return TRUE;
 }
