@@ -850,7 +850,7 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   GtkWidget* contextmenu;
 
   notebook = gtk_notebook_new();
-  gtk_container_add(GTK_CONTAINER(GTK_DIALOG(setting_dialog)->vbox), notebook);
+  gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(setting_dialog))), notebook);
 
   {
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
