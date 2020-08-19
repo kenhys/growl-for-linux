@@ -126,7 +126,11 @@ display_animation_func(gpointer data) {
   }
 
   if (di->timeout < 30) {
+#if GTK_CHECK_VERSION(3, 8, 0)
+    gtk_widget_set_opacity(di->widget.popup, (double) di->timeout/30.0*0.8);
+#else
     gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), (double) di->timeout/30.0*0.8);
+#endif
   }
   return TRUE;
 }
@@ -313,7 +317,11 @@ reset_display_info(DISPLAY_INFO* const di, NOTIFICATION_INFO* const ni) {
   free_notification_info(di->ni);
   di->ni = ni;
   gtk_widget_hide_all(di->widget.popup);
+#if GTK_CHECK_VERSION(3, 8, 0)
+  gtk_widget_set_opacity(di->widget.popup, 0.8);
+#else
   gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), 0.8);
+#endif
   remove_icon(di);
   return di;
 }
