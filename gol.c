@@ -876,7 +876,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     gtk_tree_view_column_set_min_width(GTK_TREE_VIEW_COLUMN(column), 80);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
+#if USE_GTK3
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* vbox = gtk_vbox_new(FALSE, 20);
+#endif
     gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, FALSE, 0);
     GtkWidget* label = gtk_label_new("");
     gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
@@ -956,7 +960,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     GtkWidget* const frame = gtk_frame_new("Setting");
     gtk_box_pack_start(GTK_BOX(hbox), frame, TRUE, TRUE, 0);
 
+#if USE_GTK3
+    GtkWidget* const vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* const vbox = gtk_vbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_container_add(GTK_CONTAINER(frame), vbox);
 
@@ -1009,7 +1017,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   }
 
   {
+#if USE_GTK3
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* vbox = gtk_vbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbox,
         gtk_label_new("Security"));

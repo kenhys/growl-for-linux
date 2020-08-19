@@ -271,7 +271,11 @@ create_popup_skelton() {
   g_signal_connect(G_OBJECT(ebox), "leave-notify-event", G_CALLBACK(display_leave), di);
   gtk_container_add(GTK_CONTAINER(di->widget.popup), ebox);
 
+#if USE_GTK3
+  GtkWidget* const vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
   GtkWidget* const vbox = gtk_vbox_new(FALSE, 5);
+#endif
   if (!vbox) {
     free_display_info(di);
     return NULL;
