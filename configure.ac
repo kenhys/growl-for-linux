@@ -57,6 +57,23 @@ if test x$enable_appindicator = xyes ; then
 fi
 AM_CONDITIONAL(HAVE_APP_INDICATOR, test x"$enable_appindicator" = xyes)
 
+AC_ARG_WITH(gtk3,
+            AS_HELP_STRING([--with-gtk3[=@<:@no/auto/yes@:>@]],
+		           [Use GTK+3 instead of GTK+2]),
+              [with_gtk3=$withval],
+              [with_gtk3="auto"])
+REQUIRED_GTK3=3.0.12
+if test x$with_gtk3 = xauto ; then
+        PKG_CHECK_EXISTS([gtk+-3.0 >= $REQUIRED_GTK3],
+                         with_gtk3="yes",
+                         with_gtk3="no")
+fi
+if test x$with_gtk3 = xyes ; then
+        PKG_CHECK_MODULES(GTK3, gtk+-3.0 >= $REQUIRED_GTK3)
+        AC_DEFINE(USE_GTK3, [1], [Use GTK+3 instead of GTK+2])
+fi
+AM_CONDITIONAL(USE_GTK3, test x"$with_gtk3" = xyes)
+
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h memory.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/socket.h unistd.h])
 
