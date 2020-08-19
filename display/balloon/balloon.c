@@ -136,10 +136,10 @@ display_animation_func(gpointer data) {
 static gboolean
 display_expose(GtkWidget *widget, GdkEventExpose *event, gpointer GOL_UNUSED_ARG(data)) {
   gdk_window_clear_area(
-    widget->window,
+    gtk_widget_get_window(widget),
     event->area.x, event->area.y, event->area.width, event->area.height);
   gdk_draw_pixmap(
-    widget->window,
+    gtk_widget_get_window(widget),
     widget->style->fg_gc[GTK_STATE_NORMAL],
     pixmap,
     0, 0,
@@ -380,11 +380,11 @@ display_show(NOTIFICATION_INFO* const ni) {
   g_timeout_add(10, display_animation_func, di);
 
   if (pixmap == NULL) {
-     pixmap = gdk_pixmap_create_from_xpm_d(di->widget.popup->window, &bitmap, NULL, balloon);
+    pixmap = gdk_pixmap_create_from_xpm_d(gtk_widget_get_window(di->widget.popup), &bitmap, NULL, balloon);
   }
   gdk_drawable_get_size(pixmap, &pixmap_width, &pixmap_height);
   gtk_widget_set_size_request(di->widget.popup, pixmap_width, pixmap_height);
-  gdk_window_shape_combine_mask(di->widget.popup->window, bitmap, 0, 0);
+  gdk_window_shape_combine_mask(gtk_widget_get_window(di->widget.popup), bitmap, 0, 0);
   g_signal_connect(G_OBJECT(di->widget.popup), "expose-event", G_CALLBACK(display_expose), di);
 
   return FALSE;
