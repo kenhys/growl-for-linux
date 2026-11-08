@@ -42,6 +42,7 @@ static GList* popup_collections;
 
 static GdkPixbuf* pixbuf;
 static gint pixbuf_width, pixbuf_height;
+static GdkBitmap* shape_mask;
 
 static GdkColor inst_color_white_;
 static const GdkColor* const color_white = &inst_color_white_;
@@ -254,6 +255,10 @@ create_popup_skelton() {
 
   gtk_window_stick(GTK_WINDOW(di->widget.popup));
 
+  gtk_widget_set_size_request(di->widget.popup, pixbuf_width, pixbuf_height);
+  gtk_widget_shape_combine_mask(di->widget.popup, shape_mask, 0, 0);
+  g_signal_connect(G_OBJECT(di->widget.popup), "expose-event", G_CALLBACK(display_expose), di);
+
   GtkWidget* const ebox = gtk_event_box_new();
   if (!ebox) {
     free_display_info(di);
@@ -377,15 +382,6 @@ display_show(NOTIFICATION_INFO* const ni) {
   gtk_widget_show_all(di->widget.popup);
   g_timeout_add(10, display_animation_func, di);
 
-  if (pixbuf == NULL) {
-     pixbuf = gdk_pixbuf_new_from_xpm_data(balloon);
-     pixbuf_width = gdk_pixbuf_get_width(pixbuf);
-     pixbuf_height = gdk_pixbuf_get_height(pixbuf);
-  }
-  gtk_widget_set_size_request(di->widget.popup, pixbuf_width, pixbuf_height);
-  //gdk_window_shape_combine_mask(di->widget.popup->window, bitmap, 0, 0);
-  g_signal_connect(G_OBJECT(di->widget.popup), "expose-event", G_CALLBACK(display_expose), di);
-
   return FALSE;
 }
 
@@ -404,6 +400,12 @@ display_init() {
   GdkScreen* const screen = gdk_screen_get_default();
   const gint monitor_num = gdk_screen_get_primary_monitor(screen);
   gdk_screen_get_monitor_geometry(screen, monitor_num, &screen_rect);
+
+  pixbuf = gdk_pixbuf_new_from_xpm_data(balloon);
+  if (!pixbuf) return FALSE;
+  pixbuf_width = gdk_pixbuf_get_width(pixbuf);
+  pixbuf_height = gdk_pixbuf_get_height(pixbuf);
+  gdk_pixbuf_render_pixmap_and_mask(pixbuf, NULL, &shape_mask, 128);
 
   return TRUE;
 }
@@ -424,6 +426,9 @@ display_term() {
   }
   list_free_deep(notifications);
   list_free_deep(popup_collections);
+
+  if (shape_mask) g_object_unref(shape_mask);
+  g_object_unref(pixbuf);
 
   // FIXME: g_list_free_full will fail symbol lookup.
   //void
