@@ -24,7 +24,6 @@ esac
 
 PKG_CHECK_MODULES(GLIB2, glib-2.0)
 PKG_CHECK_MODULES(GTHREAD2, gthread-2.0)
-PKG_CHECK_MODULES(GTK2, gtk+-2.0)
 PKG_CHECK_MODULES(GMODULE2, gmodule-2.0)
 PKG_CHECK_MODULES(LIBCURL, libcurl)
 PKG_CHECK_MODULES(LIBXML2, libxml-2.0)
@@ -36,6 +35,28 @@ PKG_CHECK_MODULES(NOTIFY, libnotify,
                    AC_CONFIG_FILES([display/libnotify/Makefile])],
                   [ENABLE_LIBNOTIFY=""])
 
+dnl GTK+2 and GTK+3 are exclusive: exactly one of them is used.
+AC_ARG_WITH(gtk3,
+            AS_HELP_STRING([--with-gtk3[=@<:@no/auto/yes@:>@]],
+		           [Use GTK+3 instead of GTK+2]),
+              [with_gtk3=$withval],
+              [with_gtk3="auto"])
+REQUIRED_GTK3=3.0.12
+if test x$with_gtk3 = xauto ; then
+        PKG_CHECK_EXISTS([gtk+-3.0 >= $REQUIRED_GTK3],
+                         with_gtk3="yes",
+                         with_gtk3="no")
+fi
+if test x$with_gtk3 = xyes ; then
+        PKG_CHECK_MODULES(GTK3, gtk+-3.0 >= $REQUIRED_GTK3)
+        AC_DEFINE(USE_GTK3, [1], [Use GTK+3 instead of GTK+2])
+        APPINDICATOR_MODULE=appindicator3-0.1
+else
+        PKG_CHECK_MODULES(GTK2, gtk+-2.0)
+        APPINDICATOR_MODULE=appindicator-0.1
+fi
+AM_CONDITIONAL(USE_GTK3, test x"$with_gtk3" = xyes)
+
 APPINDICATOR_REQUIRED=0.4.92
 AC_ARG_ENABLE(appindicator,
               AS_HELP_STRING([--enable-appindicator[=@<:@no/auto/yes@:>@]],
@@ -43,15 +64,15 @@ AC_ARG_ENABLE(appindicator,
               [enable_appindicator=$enableval],
               [enable_appindicator="auto"])
 if test x$enable_appindicator = xauto ; then
-        PKG_CHECK_EXISTS([appindicator-0.1 >= $APPINDICATOR_REQUIRED],
+        PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
                          enable_appindicator="yes",
                          enable_appindicator="no")
 fi
 if test x$enable_appindicator = xyes ; then
-        PKG_CHECK_EXISTS([appindicator-0.1 >= $APPINDICATOR_REQUIRED],,
-                         AC_MSG_ERROR([appindicator-0.1 is not installed]))
+        PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],,
+                         AC_MSG_ERROR([$APPINDICATOR_MODULE is not installed]))
         PKG_CHECK_MODULES(APP_INDICATOR,
-                          appindicator-0.1 >= $APPINDICATOR_REQUIRED)
+                          $APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED)
         AC_DEFINE(HAVE_APP_INDICATOR, [1], [Have AppIndicator])
 fi
 AM_CONDITIONAL(HAVE_APP_INDICATOR, test x"$enable_appindicator" = xyes)
