@@ -4,14 +4,17 @@ LDFLAGS=`pkg-config --libs gtk+-2.0 gmodule-2.0` -lshell32 -lsqlite3 -lcurl -lcr
 
 all: libgolplug.a
 
-libgolplug.a : memfile.o from_url.o
-	ar crv libgolplug.a memfile.o from_url.o
+libgolplug.a : memfile.o from_url.o popup.o
+	ar crv libgolplug.a memfile.o from_url.o popup.o
 
 memfile.o : memfile.c memfile.h
 	gcc -c $(CFLAGS) -o memfile.o -mms-bitfields memfile.c
 
 from_url.o : from_url.c from_url.h
 	gcc -c $(CFLAGS) -o from_url.o -mms-bitfields from_url.c
+
+popup.o : popup.c popup.h
+	gcc -c $(CFLAGS) -o popup.o -mms-bitfields popup.c
 
 clean:
 	-rm *.o *.lib

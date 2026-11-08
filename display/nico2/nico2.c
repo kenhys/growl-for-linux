@@ -31,6 +31,7 @@
 #include "gol.h"
 #include "compatibility.h"
 #include "plugins/from_url.h"
+#include "plugins/popup.h"
 
 #include "display_nico2.xpm"
 
@@ -234,9 +235,7 @@ display_init() {
   pango_font_description_set_family(font_sans20_desc, "Sans");
   pango_font_description_set_size(font_sans20_desc, 20 * PANGO_SCALE);
 
-  GdkScreen* const screen = gdk_screen_get_default();
-  const gint monitor_num = gdk_screen_get_primary_monitor(screen);
-  gdk_screen_get_monitor_geometry(screen, monitor_num, &screen_rect);
+  gol_popup_get_screen_rect(&screen_rect);
 
   return TRUE;
 }
