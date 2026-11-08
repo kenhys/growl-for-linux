@@ -72,7 +72,7 @@
 
 typedef struct {
   void* handle;
-  gboolean (*init)();
+  gboolean (*init)(SUBSCRIPTOR_CONTEXT*);
   gboolean (*start)();
   gboolean (*stop)();
   gboolean (*term)();
