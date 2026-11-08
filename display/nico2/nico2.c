@@ -24,6 +24,9 @@
 #include <stdlib.h>
 
 #include <gtk/gtk.h>
+#if USE_GTK3
+# include <pango/pangocairo.h>
+#endif
 #ifdef _WIN32
 # include <gdk/gdkwin32.h>
 #endif
@@ -61,10 +64,18 @@ typedef struct {
   gint height;
   gboolean sticky;
   gboolean hover;
+#if USE_GTK3
+  PangoLayout* layout;
+  GdkColor color;
+#endif
 } DISPLAY_INFO;
 
 static void
 free_display_info(DISPLAY_INFO* di) {
+#if USE_GTK3
+  if (di->layout)
+    g_object_unref(di->layout);
+#endif
   free_notification_info(di->ni);
   g_free(di);
 }
@@ -118,6 +129,26 @@ display_animation_func(gpointer data) {
   return TRUE;
 }
 
+#if USE_GTK3
+static gboolean
+display_draw(GtkWidget* GOL_UNUSED_ARG(widget), cairo_t* cr, gpointer data) {
+  DISPLAY_INFO* di = (DISPLAY_INFO*) data;
+
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_set_source_rgba(cr, 0, 0, 0, 0);
+  cairo_paint(cr);
+
+  cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+  cairo_set_source_rgb(cr,
+      di->color.red / (double) 0xffff,
+      di->color.green / (double) 0xffff,
+      di->color.blue / (double) 0xffff);
+  cairo_move_to(cr, 32 + 5, 0);
+  pango_cairo_show_layout(cr, di->layout);
+  return FALSE;
+}
+#endif
+
 G_MODULE_EXPORT gboolean
 display_show(NOTIFICATION_INFO* ni) {
 
@@ -136,7 +167,16 @@ display_show(NOTIFICATION_INFO* ni) {
   gtk_window_set_decorated(GTK_WINDOW(di->popup), FALSE);
   gtk_window_set_keep_above(GTK_WINDOW(di->popup), TRUE);
 
+#if USE_GTK3
+  GdkScreen *screen = gtk_widget_get_screen(di->popup);
+  GdkVisual *visual = gdk_screen_get_rgba_visual(screen);
+  if (visual)
+    gtk_widget_set_visual(di->popup, visual);
+  gtk_widget_set_app_paintable(di->popup, TRUE);
+  di->color = colors[rand() % lengthof(available_colors)];
+#else
   gtk_widget_modify_bg(di->popup, GTK_STATE_NORMAL, colors + (rand() % lengthof(available_colors)));
+#endif
 
   gtk_window_stick(GTK_WINDOW(di->popup));
 
@@ -187,6 +227,9 @@ display_show(NOTIFICATION_INFO* ni) {
 
   if (image)
     gtk_fixed_move(GTK_FIXED(fixed), image, 0, di->height / 2 - 16);
+#if USE_GTK3
+  di->layout = layout;
+#else
   GdkBitmap* bitmap = gdk_pixmap_new(gtk_widget_get_window(di->popup), di->width, di->height, 1);
   GdkGC *gc = gdk_gc_new(GDK_DRAWABLE(bitmap));
   GdkColormap* colormap = gdk_colormap_get_system();
@@ -201,6 +244,7 @@ display_show(NOTIFICATION_INFO* ni) {
   if (image)
     gdk_draw_rectangle(bitmap, gc, TRUE, 0, di->height / 2 - 16, 32, 32);
   gdk_draw_layout(bitmap, gc, 32 + 5, 0, layout);
+#endif
 
   g_signal_connect(G_OBJECT(ebox), "button-press-event", G_CALLBACK(display_clicked), di);
   g_signal_connect(G_OBJECT(ebox), "enter-notify-event", G_CALLBACK(display_enter), di);
@@ -210,13 +254,17 @@ display_show(NOTIFICATION_INFO* ni) {
   gtk_widget_show_all(di->popup);
 
   gtk_widget_set_size_request(fixed, di->width, di->height);
+#if USE_GTK3
+  g_signal_connect(di->popup, "draw", G_CALLBACK(display_draw), di);
+#else
   gdk_window_set_back_pixmap(gtk_widget_get_window(di->popup), NULL, FALSE);
   gdk_window_shape_combine_mask(gtk_widget_get_window(di->popup), bitmap, 0, 0);
 
   g_object_unref(gc);
+  g_object_unref(bitmap);
   g_object_unref(layout);
   g_object_unref(context);
-  g_object_unref(bitmap);
+#endif
 
   g_object_ref(di->popup);
   g_timeout_add(100, display_animation_func, di);
