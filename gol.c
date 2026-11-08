@@ -2388,6 +2388,15 @@ destroy_udp_server(GIOChannel* const channel) {
 }
 
 static void
+select_gdk_backend(void) {
+#if GTK_CHECK_VERSION(3, 10, 0)
+  if (g_getenv("GDK_BACKEND")) return;
+  // Popups need fixed positions on the screen, and Wayland gives them only via layer shell.
+  gdk_set_allowed_backends("x11,*");
+#endif
+}
+
+static void
 usage(void) {
   fprintf(stderr,"Usage: gol [option]\n");
   fprintf(stderr," -h    : show this help\n");
@@ -2429,6 +2438,7 @@ main(int argc, char* argv[]) {
 
   g_set_application_name("growl-for-linux");
 
+  select_gdk_backend();
   gtk_init(&argc, &argv);
 
 #ifdef _WIN32
