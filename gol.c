@@ -825,7 +825,11 @@ vertical_list_new(const char* const model_name, const char* const tree_name,
   g_signal_connect(G_OBJECT(select), "changed",
       G_CALLBACK(changed_callback), setting_dialog);
 
-  gtk_box_pack_start(GTK_BOX(hbox), tree_view, FALSE, FALSE, 0);
+  GtkWidget* const swin = gtk_scrolled_window_new(NULL, NULL);
+  gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+      GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_container_add(GTK_CONTAINER(swin), tree_view);
+  gtk_box_pack_start(GTK_BOX(hbox), swin, FALSE, FALSE, 0);
 
   GtkTreeViewColumn* const column =
     gtk_tree_view_column_new_with_attributes(
@@ -874,7 +878,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
     g_signal_connect(G_OBJECT(select), "changed",
         G_CALLBACK(display_tree_selection_changed), setting_dialog);
-    gtk_box_pack_start(GTK_BOX(hbox), tree_view, FALSE, FALSE, 0);
+    GtkWidget* swin = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(swin),
+        GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(swin), tree_view);
+    gtk_box_pack_start(GTK_BOX(hbox), swin, FALSE, FALSE, 0);
     GtkTreeViewColumn* column = gtk_tree_view_column_new_with_attributes(
         "Display", gtk_cell_renderer_text_new(), "text", 0, NULL);
     gtk_tree_view_column_set_min_width(GTK_TREE_VIEW_COLUMN(column), 80);
@@ -1109,7 +1117,9 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     GtkTreeSelection* select = gtk_tree_view_get_selection(
         GTK_TREE_VIEW(tree_view));
     gtk_tree_selection_set_mode(select, GTK_SELECTION_SINGLE);
-    gtk_box_pack_start(GTK_BOX(hbox), tree_view, TRUE, TRUE, 0);
+    GtkWidget* swin = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(swin), tree_view);
+    gtk_box_pack_start(GTK_BOX(hbox), swin, TRUE, TRUE, 0);
 
     GtkCellRenderer* renderer = gtk_cell_renderer_toggle_new();
     g_signal_connect(renderer, "toggled",
@@ -1183,7 +1193,8 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     }
   }
 
-  gtk_widget_set_size_request(setting_dialog, 500, 500);
+  // gtk_widget_set_size_request() would make it the smallest size.
+  gtk_window_set_default_size(GTK_WINDOW(setting_dialog), 500, 500);
   gtk_widget_show_all(setting_dialog);
   gtk_dialog_run(GTK_DIALOG(setting_dialog));
   gtk_widget_destroy(setting_dialog);
