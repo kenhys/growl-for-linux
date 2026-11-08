@@ -43,10 +43,16 @@ static GList* popup_collections;
 
 static GdkPixbuf* pixbuf;
 static gint pixbuf_width, pixbuf_height;
+#if USE_GTK3
+static cairo_region_t* shape_region;
+#else
 static GdkBitmap* shape_mask;
+#endif
 
+#ifndef USE_GTK3
 static GdkColor inst_color_white_;
 static const GdkColor* const color_white = &inst_color_white_;
+#endif
 
 static PangoFontDescription* font_sans12_desc;
 static PangoFontDescription* font_sans8_desc;
@@ -127,15 +133,49 @@ display_animation_func(gpointer data) {
   }
 
   if (di->timeout > 450) {
+#if GTK_CHECK_VERSION(3, 8, 0)
+    gtk_widget_set_opacity(di->widget.popup, (double) (di->default_timeout-di->timeout)/50.0*0.8);
+#else
     gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), (double) (di->default_timeout-di->timeout)/50.0*0.8);
+#endif
   }
 
   if (di->timeout < 50) {
+#if GTK_CHECK_VERSION(3, 8, 0)
+    gtk_widget_set_opacity(di->widget.popup, (double) di->timeout/50.0*0.8);
+#else
     gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), (double) di->timeout/50.0*0.8);
+#endif
   }
   return TRUE;
 }
 
+#if USE_GTK3
+static gboolean
+display_draw(GtkWidget* GOL_UNUSED_ARG(widget), cairo_t* cr, gpointer GOL_UNUSED_ARG(data)) {
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_set_source_rgba(cr, 0, 0, 0, 0);
+  cairo_paint(cr);
+
+  cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+  gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+  cairo_paint(cr);
+  return FALSE;
+}
+
+static cairo_region_t*
+region_from_pixbuf(GdkPixbuf* const src) {
+  cairo_surface_t* const surface = cairo_image_surface_create(
+    CAIRO_FORMAT_ARGB32, gdk_pixbuf_get_width(src), gdk_pixbuf_get_height(src));
+  cairo_t* const cr = cairo_create(surface);
+  gdk_cairo_set_source_pixbuf(cr, src, 0, 0);
+  cairo_paint(cr);
+  cairo_destroy(cr);
+  cairo_region_t* const region = gdk_cairo_region_create_from_surface(surface);
+  cairo_surface_destroy(surface);
+  return region;
+}
+#else
 static gboolean
 display_expose(GtkWidget *widget, GdkEventExpose *event, gpointer GOL_UNUSED_ARG(data)) {
   gdk_window_clear_area(
@@ -150,6 +190,7 @@ display_expose(GtkWidget *widget, GdkEventExpose *event, gpointer GOL_UNUSED_ARG
     GDK_RGB_DITHER_NORMAL, 0, 0);
   return FALSE;
 }
+#endif
 
 static void
 label_size_allocate(GtkWidget* label, GtkAllocation* allocation, gpointer GOL_UNUSED_ARG(data)) {
@@ -257,8 +298,21 @@ create_popup_skelton() {
   gtk_window_stick(GTK_WINDOW(di->widget.popup));
 
   gtk_widget_set_size_request(di->widget.popup, pixbuf_width, pixbuf_height);
+#if USE_GTK3
+  GdkScreen* const screen = gtk_widget_get_screen(di->widget.popup);
+  GdkVisual* const visual = gdk_screen_get_rgba_visual(screen);
+  if (visual) gtk_widget_set_visual(di->widget.popup, visual);
+  gtk_widget_set_app_paintable(di->widget.popup, TRUE);
+  // The shape is for X11 without a compositor, where the alpha channel is ignored.
+  // Do not use it with a compositor: Xwayland shows the cut part in black.
+  if (!visual || !gdk_screen_is_composited(screen))
+    gtk_widget_shape_combine_region(di->widget.popup, shape_region);
+  gtk_widget_input_shape_combine_region(di->widget.popup, shape_region);
+  g_signal_connect(G_OBJECT(di->widget.popup), "draw", G_CALLBACK(display_draw), NULL);
+#else
   gtk_widget_shape_combine_mask(di->widget.popup, shape_mask, 0, 0);
   g_signal_connect(G_OBJECT(di->widget.popup), "expose-event", G_CALLBACK(display_expose), di);
+#endif
 
   GtkWidget* const ebox = gtk_event_box_new();
   if (!ebox) {
@@ -271,7 +325,11 @@ create_popup_skelton() {
   g_signal_connect(G_OBJECT(ebox), "leave-notify-event", G_CALLBACK(display_leave), di);
   gtk_container_add(GTK_CONTAINER(di->widget.popup), ebox);
 
+#if USE_GTK3
+  GtkWidget* const vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
   GtkWidget* const vbox = gtk_vbox_new(FALSE, 5);
+#endif
   if (!vbox) {
     free_display_info(di);
     return NULL;
@@ -279,7 +337,11 @@ create_popup_skelton() {
   gtk_container_set_border_width(GTK_CONTAINER(vbox), 18);
   gtk_container_add(GTK_CONTAINER(ebox), vbox);
 
+#if USE_GTK3
+  GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
   GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
   if (!hbox) {
     free_display_info(di);
     return NULL;
@@ -291,8 +353,27 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  GtkStyleContext *context = gtk_widget_get_style_context(di->widget.title);
+  GtkCssProvider *provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: white; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.title, GTK_STATE_NORMAL, color_white);
+#endif
+#if USE_GTK3
+  {
+    PangoAttrList* const attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_font_desc_new(font_sans12_desc));
+    gtk_label_set_attributes(GTK_LABEL(di->widget.title), attrs);
+    pango_attr_list_unref(attrs);
+  }
+#else
   gtk_widget_modify_font(di->widget.title, font_sans12_desc);
+#endif
   gtk_box_pack_start(GTK_BOX(hbox), di->widget.title, FALSE, FALSE, 0);
 
   di->widget.text = gtk_label_new(NULL);
@@ -300,8 +381,27 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  context = gtk_widget_get_style_context(di->widget.text);
+  provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: white; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.text, GTK_STATE_NORMAL, color_white);
+#endif
+#if USE_GTK3
+  {
+    PangoAttrList* const attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_font_desc_new(font_sans8_desc));
+    gtk_label_set_attributes(GTK_LABEL(di->widget.text), attrs);
+    pango_attr_list_unref(attrs);
+  }
+#else
   gtk_widget_modify_font(di->widget.text, font_sans8_desc);
+#endif
   g_signal_connect(G_OBJECT(di->widget.text), "size-allocate", G_CALLBACK(label_size_allocate), NULL);
   gtk_label_set_justify(GTK_LABEL(di->widget.text), GTK_JUSTIFY_LEFT);
   gtk_label_set_line_wrap(GTK_LABEL(di->widget.text), TRUE);
@@ -327,7 +427,11 @@ reset_display_info(DISPLAY_INFO* const di, NOTIFICATION_INFO* const ni) {
   free_notification_info(di->ni);
   di->ni = ni;
   gtk_widget_hide(di->widget.popup);
+#if GTK_CHECK_VERSION(3, 8, 0)
+  gtk_widget_set_opacity(di->widget.popup, 0);
+#else
   gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), 0);
+#endif
   remove_icon(di);
   return di;
 }
@@ -388,7 +492,9 @@ display_show(NOTIFICATION_INFO* const ni) {
 
 G_MODULE_EXPORT gboolean
 display_init() {
+#ifndef USE_GTK3
   gdk_color_parse("white", &inst_color_white_);
+#endif
 
   font_sans12_desc = pango_font_description_new();
   pango_font_description_set_family(font_sans12_desc, "Sans");
@@ -404,7 +510,11 @@ display_init() {
   if (!pixbuf) return FALSE;
   pixbuf_width = gdk_pixbuf_get_width(pixbuf);
   pixbuf_height = gdk_pixbuf_get_height(pixbuf);
+#if USE_GTK3
+  shape_region = region_from_pixbuf(pixbuf);
+#else
   gdk_pixbuf_render_pixmap_and_mask(pixbuf, NULL, &shape_mask, 128);
+#endif
 
   return TRUE;
 }
@@ -426,7 +536,11 @@ display_term() {
   list_free_deep(notifications);
   list_free_deep(popup_collections);
 
+#if USE_GTK3
+  cairo_region_destroy(shape_region);
+#else
   if (shape_mask) g_object_unref(shape_mask);
+#endif
   g_object_unref(pixbuf);
 
   // FIXME: g_list_free_full will fail symbol lookup.
