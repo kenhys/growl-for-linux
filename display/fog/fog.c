@@ -37,10 +37,12 @@
 static GList* notifications;
 static GList* popup_collections;
 
+#ifndef USE_GTK3
 static GdkColor inst_color_lightgray_;
 static GdkColor inst_color_black_;
 static const GdkColor* const color_lightgray = &inst_color_lightgray_;
 static const GdkColor* const color_black     = &inst_color_black_;
+#endif
 
 static PangoFontDescription* font_sans12_desc;
 static PangoFontDescription* font_sans8_desc;
@@ -127,7 +129,11 @@ display_animation_func(gpointer data) {
   }
 
   if (di->timeout < 30) {
+#if GTK_CHECK_VERSION(3, 8, 0)
+    gtk_widget_set_opacity(di->widget.popup, (double) di->timeout/30.0*0.8);
+#else
     gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), (double) di->timeout/30.0*0.8);
+#endif
   }
   return TRUE;
 }
@@ -238,7 +244,23 @@ create_popup_skelton() {
   gtk_window_set_keep_above(GTK_WINDOW(di->widget.popup), TRUE);
 
   gtk_window_stick(GTK_WINDOW(di->widget.popup));
+#if USE_GTK3
+  // Without an RGBA visual, GTK only asks the window manager for the opacity,
+  // and the window manager of Xwayland may ignore it.
+  GdkScreen* const screen = gtk_widget_get_screen(di->widget.popup);
+  GdkVisual* const visual = gdk_screen_get_rgba_visual(screen);
+  if (visual && gdk_screen_is_composited(screen))
+    gtk_widget_set_visual(di->widget.popup, visual);
+  GtkStyleContext *context = gtk_widget_get_style_context(di->widget.popup);
+  GtkCssProvider *provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { background-color: lightgray; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_bg(di->widget.popup, GTK_STATE_NORMAL, color_lightgray);
+#endif
 
   GtkWidget* const ebox = gtk_event_box_new();
   if (!ebox) {
@@ -251,7 +273,11 @@ create_popup_skelton() {
   g_signal_connect(G_OBJECT(ebox), "leave-notify-event", G_CALLBACK(display_leave), di);
   gtk_container_add(GTK_CONTAINER(di->widget.popup), ebox);
 
+#if USE_GTK3
+  GtkWidget* const vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
   GtkWidget* const vbox = gtk_vbox_new(FALSE, 5);
+#endif
   if (!vbox) {
     free_display_info(di);
     return NULL;
@@ -259,7 +285,11 @@ create_popup_skelton() {
   gtk_container_set_border_width(GTK_CONTAINER(vbox), 5);
   gtk_container_add(GTK_CONTAINER(ebox), vbox);
 
+#if USE_GTK3
+  GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
   GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
   if (!hbox) {
     free_display_info(di);
     return NULL;
@@ -271,8 +301,27 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  context = gtk_widget_get_style_context(di->widget.title);
+  provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: black; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.title, GTK_STATE_NORMAL, color_black);
+#endif
+#if USE_GTK3
+  {
+    PangoAttrList* const attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_font_desc_new(font_sans12_desc));
+    gtk_label_set_attributes(GTK_LABEL(di->widget.title), attrs);
+    pango_attr_list_unref(attrs);
+  }
+#else
   gtk_widget_modify_font(di->widget.title, font_sans12_desc);
+#endif
   gtk_box_pack_start(GTK_BOX(hbox), di->widget.title, FALSE, FALSE, 0);
 
   di->widget.text = gtk_label_new(NULL);
@@ -280,8 +329,27 @@ create_popup_skelton() {
     free_display_info(di);
     return NULL;
   }
+#if USE_GTK3
+  context = gtk_widget_get_style_context(di->widget.text);
+  provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_data(GTK_CSS_PROVIDER(provider), "* { color: black; }", -1, NULL);
+  gtk_style_context_add_provider(context,
+                                 GTK_STYLE_PROVIDER(provider),
+                                 GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+  g_object_unref(provider);
+#else
   gtk_widget_modify_fg(di->widget.text, GTK_STATE_NORMAL, color_black);
+#endif
+#if USE_GTK3
+  {
+    PangoAttrList* const attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_font_desc_new(font_sans8_desc));
+    gtk_label_set_attributes(GTK_LABEL(di->widget.text), attrs);
+    pango_attr_list_unref(attrs);
+  }
+#else
   gtk_widget_modify_font(di->widget.text, font_sans8_desc);
+#endif
   g_signal_connect(G_OBJECT(di->widget.text), "size-allocate", G_CALLBACK(label_size_allocate), NULL);
   gtk_label_set_line_wrap(GTK_LABEL(di->widget.text), TRUE);
   gtk_label_set_line_wrap_mode(GTK_LABEL(di->widget.text), PANGO_WRAP_CHAR);
@@ -310,7 +378,11 @@ reset_display_info(DISPLAY_INFO* const di, NOTIFICATION_INFO* const ni) {
   free_notification_info(di->ni);
   di->ni = ni;
   gtk_widget_hide(di->widget.popup);
+#if GTK_CHECK_VERSION(3, 8, 0)
+  gtk_widget_set_opacity(di->widget.popup, 0.8);
+#else
   gtk_window_set_opacity(GTK_WINDOW(di->widget.popup), 0.8);
+#endif
   remove_icon(di);
   return di;
 }
@@ -371,8 +443,10 @@ display_show(NOTIFICATION_INFO* const ni) {
 
 G_MODULE_EXPORT gboolean
 display_init() {
+#ifndef USE_GTK3
   gdk_color_parse("lightgray", &inst_color_lightgray_);
   gdk_color_parse("black", &inst_color_black_);
+#endif
 
   font_sans12_desc = pango_font_description_new();
   pango_font_description_set_family(font_sans12_desc, "Sans");
