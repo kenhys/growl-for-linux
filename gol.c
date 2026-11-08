@@ -717,7 +717,12 @@ notification_display_changed(GtkComboBox *combobox, gpointer user_data) {
     return;
   }
 
+#if USE_GTK3
+  gchar* const display =
+      gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(combobox));
+#else
   gchar* const display = gtk_combo_box_get_active_text(combobox);
+#endif
 
   exec_sqlite3(
     "update application set display = '%q'"
@@ -852,7 +857,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(setting_dialog))), notebook);
 
   {
+#ifdef USE_GTK3
+    GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
         hbox, gtk_label_new("Display"));
@@ -871,11 +880,20 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     gtk_tree_view_column_set_min_width(GTK_TREE_VIEW_COLUMN(column), 80);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
+#if USE_GTK3
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* vbox = gtk_vbox_new(FALSE, 20);
+#endif
     gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, FALSE, 0);
     GtkWidget* label = gtk_label_new("");
     gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);
     gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_CHAR);
+#if USE_GTK3
+    // GTK3 asks for the height of a wrapped label at its smallest width,
+    // which is one character with PANGO_WRAP_CHAR.
+    gtk_label_set_width_chars(GTK_LABEL(label), 30);
+#endif
     g_object_set_data(G_OBJECT(setting_dialog), "description", label);
     GtkWidget* align = gtk_alignment_new(0, 0, 0, 0);
     gtk_container_add(GTK_CONTAINER(align), label);
@@ -884,7 +902,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     g_object_set_data(G_OBJECT(setting_dialog), "thumbnail", image);
     gtk_box_pack_start(GTK_BOX(vbox), image, TRUE, TRUE, 0);
 
+#if USE_GTK3
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 0);
 
     GtkWidget* button = gtk_button_new_with_label("Set as Default");
@@ -896,7 +918,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
         G_CALLBACK(preview_clicked), select);
     gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
+#if USE_GTK3
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 0);
 
     /*
@@ -926,7 +952,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
         G_CALLBACK(application_delete), setting_dialog);
     gtk_menu_shell_append(GTK_MENU_SHELL(contextmenu), menu_item);
 
+#if USE_GTK3
+    GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
         hbox, gtk_label_new("Application"));
@@ -943,20 +973,35 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     GtkWidget* const frame = gtk_frame_new("Setting");
     gtk_box_pack_start(GTK_BOX(hbox), frame, TRUE, TRUE, 0);
 
+#if USE_GTK3
+    GtkWidget* const vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* const vbox = gtk_vbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_container_add(GTK_CONTAINER(frame), vbox);
 
     {
+#if USE_GTK3
+      GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
       GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
       gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
       GtkWidget* const label = gtk_label_new("Enable:");
       gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+#if USE_GTK3
+      GtkWidget* const combobox = gtk_combo_box_text_new();
+      g_object_set_data(G_OBJECT(setting_dialog), "enable", combobox);
+      gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combobox), "Enable");
+      gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combobox), "Disable");
+#else
       GtkWidget* const combobox = gtk_combo_box_new_text();
       g_object_set_data(G_OBJECT(setting_dialog), "enable", combobox);
       gtk_combo_box_append_text(GTK_COMBO_BOX(combobox), "Enable");
       gtk_combo_box_append_text(GTK_COMBO_BOX(combobox), "Disable");
+#endif
       gtk_widget_set_sensitive(combobox, FALSE);
       g_signal_connect(G_OBJECT(combobox), "changed",
           G_CALLBACK(notification_enable_changed), setting_dialog);
@@ -964,12 +1009,20 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     }
 
     {
+#if USE_GTK3
+      GtkWidget* const hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
       GtkWidget* const hbox = gtk_hbox_new(FALSE, 5);
+#endif
       gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
       GtkWidget* const label = gtk_label_new("Display:");
       gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+#if USE_GTK3
+      GtkWidget* const combobox = gtk_combo_box_text_new();
+#else
       GtkWidget* const combobox = gtk_combo_box_new_text();
+#endif
       g_object_set_data(G_OBJECT(setting_dialog), "display", combobox);
       gtk_widget_set_sensitive(combobox, FALSE);
       g_signal_connect(G_OBJECT(combobox), "changed",
@@ -989,14 +1042,22 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
 
       void
       append_display_plugins(DISPLAY_PLUGIN* dp) {
+#if USE_GTK3
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combobox), dp->name());
+#else
         gtk_combo_box_append_text(GTK_COMBO_BOX(combobox), dp->name());
+#endif
       }
       foreach_display_plugin(append_display_plugins);
     }
   }
 
   {
+#if USE_GTK3
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+#else
     GtkWidget* vbox = gtk_vbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbox,
         gtk_label_new("Security"));
@@ -1016,7 +1077,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     g_signal_connect(G_OBJECT(checkbutton), "toggled",
         G_CALLBACK(require_password_for_lan_apps_changed), NULL);
     gtk_box_pack_start(GTK_BOX(vbox), checkbutton, FALSE, FALSE, 0);
+#if USE_GTK3
+    GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
     GtkWidget* label = gtk_label_new("Password:");
     gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
@@ -1029,7 +1094,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   }
 
   {
+#if USE_GTK3
+    GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
         hbox, gtk_label_new("Subscribe"));
@@ -1067,7 +1136,11 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
   }
 
   {
+#if USE_GTK3
+    GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+#else
     GtkWidget* hbox = gtk_hbox_new(FALSE, 5);
+#endif
     gtk_container_set_border_width(GTK_CONTAINER(hbox), 10);
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook),
         hbox, gtk_label_new("Notifications"));
@@ -1133,7 +1206,11 @@ about_click(GtkWidget* GOL_UNUSED_ARG(widget), gpointer GOL_UNUSED_ARG(user_data
   gchar* contents = NULL;
 
   about_dialog = gtk_about_dialog_new();
+#if USE_GTK3
+  gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about_dialog), "Growl For Linux");
+#else
   gtk_about_dialog_set_name(GTK_ABOUT_DIALOG(about_dialog), "Growl For Linux");
+#endif
   gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about_dialog),
           "https://github.com/mattn/growl-for-linux/");
   gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about_dialog),
@@ -1785,7 +1862,11 @@ status_icon_popup(
 static void
 create_menu() {
   status_icon = gtk_status_icon_new();
+#if USE_GTK3
+  gtk_status_icon_set_tooltip_text(status_icon, "Growl");
+#else
   gtk_status_icon_set_tooltip(status_icon, "Growl");
+#endif
 
   // TODO: absolute path
   status_icon_pixbuf = pixbuf_from_datadir("icon.png", NULL);
