@@ -210,47 +210,31 @@ unhex(unsigned char c) {
   return strtol(str, &_unused_endptr, 16);
 }
 
+static gint
+compare_display_plugin_name(gconstpointer dp, gconstpointer name) {
+  return g_ascii_strcasecmp(((const DISPLAY_PLUGIN*) dp)->name(), (const char*) name);
+}
+
 DISPLAY_PLUGIN*
-find_display_plugin_or(bool(* pred)(const DISPLAY_PLUGIN*), DISPLAY_PLUGIN* const or_dp) {
-  gint
-  wrapped_pred(gconstpointer dp, gconstpointer GOL_UNUSED_ARG(user_data)) {
-    return pred((const DISPLAY_PLUGIN*) dp) ? 0 : 1;
-  }
-  GList* elem = g_list_find_custom(display_plugins, NULL, wrapped_pred);
+find_display_plugin_or(const char* const name, DISPLAY_PLUGIN* const or_dp) {
+  GList* elem = g_list_find_custom(display_plugins, name, compare_display_plugin_name);
   return elem ? (DISPLAY_PLUGIN*) elem->data : or_dp;
 }
 
 DISPLAY_PLUGIN*
-find_display_plugin(bool(* pred)(const DISPLAY_PLUGIN*)) {
-  return find_display_plugin_or(pred, NULL);
+find_display_plugin(const char* const name) {
+  return find_display_plugin_or(name, NULL);
+}
+
+static gint
+compare_subscribe_plugin_name(gconstpointer sp, gconstpointer name) {
+  return g_ascii_strcasecmp(((const SUBSCRIBE_PLUGIN*) sp)->name(), (const char*) name);
 }
 
 SUBSCRIBE_PLUGIN*
-find_subscribe_plugin(bool(* pred)(const SUBSCRIBE_PLUGIN*)) {
-  gint
-  wrapped_pred(gconstpointer sp, gconstpointer GOL_UNUSED_ARG(user_data)) {
-    return pred((const SUBSCRIBE_PLUGIN*) sp) ? 0 : 1;
-  }
-  GList* elem = g_list_find_custom(subscribe_plugins, NULL, wrapped_pred);
+find_subscribe_plugin(const char* const name) {
+  GList* elem = g_list_find_custom(subscribe_plugins, name, compare_subscribe_plugin_name);
   return elem ? (SUBSCRIBE_PLUGIN*) elem->data : NULL;
-}
-
-void
-foreach_display_plugin(void(* func)(DISPLAY_PLUGIN*)) {
-  void
-  wrapped_func(gpointer dp, gpointer GOL_UNUSED_ARG(user_data)) {
-    func((DISPLAY_PLUGIN*) dp);
-  }
-  g_list_foreach(display_plugins, wrapped_func, NULL);
-}
-
-void
-foreach_subscribe_plugin(void(* func)(SUBSCRIBE_PLUGIN*)) {
-  void
-  wrapped_func(gpointer sp, gpointer GOL_UNUSED_ARG(user_data)) {
-    func((SUBSCRIBE_PLUGIN*) sp);
-  }
-  g_list_foreach(subscribe_plugins, wrapped_func, NULL);
 }
 
 static void
@@ -289,19 +273,6 @@ prepare_sqlite3(const char* const tsql, ...) {
   return stmt;
 }
 
-static void
-statement_sqlite3(void(* stmt_func)(sqlite3_stmt*), const char* const tsql, ...) {
-  va_list list;
-  va_start(list, tsql);
-
-  sqlite3_stmt* const stmt = vprepare_sqlite3(tsql, list);
-  stmt_func(stmt);
-
-  sqlite3_finalize(stmt);
-
-  va_end(list);
-}
-
 static GdkPixbuf*
 pixbuf_from_datadir(const gchar* filename, GError** error) {
   if (!filename) {
@@ -318,44 +289,35 @@ pixbuf_from_datadir(const gchar* filename, GError** error) {
 
 static gboolean
 get_config_bool(const char* key, gboolean def) {
-  gboolean ret;
-  void
-  get_int(sqlite3_stmt* const stmt) {
-    ret = sqlite3_step(stmt) == SQLITE_ROW
-      ? (gboolean) sqlite3_column_int(stmt, 0)
-      : def;
-  }
-  statement_sqlite3(get_int,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select value from config where key = '%q'", key);
+  const gboolean ret = sqlite3_step(stmt) == SQLITE_ROW
+    ? (gboolean) sqlite3_column_int(stmt, 0)
+    : def;
+  sqlite3_finalize(stmt);
   return ret;
 }
 
 static gboolean
 get_subscriber_enabled(const char* name) {
-  gboolean ret;
-  void
-  get_enabled(sqlite3_stmt* const stmt) {
-    ret = sqlite3_step(stmt) == SQLITE_ROW
-        ? (gboolean) sqlite3_column_int(stmt, 0)
-        : FALSE;
-  }
-  statement_sqlite3(get_enabled,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select enable from subscriber where name = '%q'", name);
+  const gboolean ret = sqlite3_step(stmt) == SQLITE_ROW
+    ? (gboolean) sqlite3_column_int(stmt, 0)
+    : FALSE;
+  sqlite3_finalize(stmt);
   return ret;
 }
 
 static gchar*
 get_display_parameter(const char* const name, const char* const def) {
-  gchar* value;
-  void
-  get_string(sqlite3_stmt* const stmt) {
-    value = g_strdup(
-        sqlite3_step(stmt) == SQLITE_ROW
-          ? (char*) sqlite3_column_text(stmt, 0)
-          : def ? def : "");
-  }
-  statement_sqlite3(get_string,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select parameter from display where name = '%q'", name);
+  gchar* const value = g_strdup(
+      sqlite3_step(stmt) == SQLITE_ROW
+        ? (char*) sqlite3_column_text(stmt, 0)
+        : def ? def : "");
+  sqlite3_finalize(stmt);
   return value;
 }
 
@@ -369,31 +331,24 @@ set_display_parameter(const char* const name, const char* const value) {
 
 static gint
 get_config_value(const char* const key, const gint def) {
-  gchar* data;
-  gint value;
-  void
-  get_string(sqlite3_stmt* const stmt) {
-    data = sqlite3_step(stmt) == SQLITE_ROW
-          ? (char*) sqlite3_column_text(stmt, 0): "";
-  }
-  statement_sqlite3(get_string,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select value from config where key = '%q'", key);
-  value = g_ascii_strtoll(data, NULL, 10);
+  const char* const data = sqlite3_step(stmt) == SQLITE_ROW
+    ? (char*) sqlite3_column_text(stmt, 0) : "";
+  const gint value = g_ascii_strtoll(data, NULL, 10);
+  sqlite3_finalize(stmt);
   return value != 0 ? value : def;
 }
 
 static gchar*
 get_config_string(const char* const key, const char* const def) {
-  gchar* value;
-  void
-  get_string(sqlite3_stmt* const stmt) {
-    value = g_strdup(
-        sqlite3_step(stmt) == SQLITE_ROW
-          ? (char*) sqlite3_column_text(stmt, 0)
-          : def ? def : "");
-  }
-  statement_sqlite3(get_string,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select value from config where key = '%q'", key);
+  gchar* const value = g_strdup(
+      sqlite3_step(stmt) == SQLITE_ROW
+        ? (char*) sqlite3_column_text(stmt, 0)
+        : def ? def : "");
+  sqlite3_finalize(stmt);
   return value;
 }
 
@@ -466,11 +421,7 @@ display_tree_selection_changed(GtkTreeSelection * const selection, const gpointe
 
   if (!get_tree_model_from_selection(&name, selection)) return;
 
-  bool
-  is_selection_name(const DISPLAY_PLUGIN* dp) {
-    return !g_ascii_strcasecmp(dp->name(), name);
-  }
-  DISPLAY_PLUGIN* const cp = find_display_plugin_or(is_selection_name, current_display);
+  DISPLAY_PLUGIN* const cp = find_display_plugin_or(name, current_display);
 
   GtkWidget* const label = (GtkWidget*) get_data_as_object(user_data, "description");
   gtk_label_set_markup(GTK_LABEL(label), "");
@@ -510,16 +461,14 @@ application_tree_selection_changed(GtkTreeSelection *selection, gpointer user_da
   GtkListStore* const model2 = (GtkListStore*) get_data_as_object(user_data, "model2");
   gtk_list_store_clear(model2);
 
-  void
-  append_applications(sqlite3_stmt* const stmt) {
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-      list_store_set_after_append(
-          GTK_LIST_STORE(model2), 0, sqlite3_column_text(stmt, 0), -1);
-    }
-  }
-  statement_sqlite3(append_applications,
+  sqlite3_stmt* const stmt = prepare_sqlite3(
       "select distinct name from application"
       " where app_name = '%q' order by name", app_name);
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    list_store_set_after_append(
+        GTK_LIST_STORE(model2), 0, sqlite3_column_text(stmt, 0), -1);
+  }
+  sqlite3_finalize(stmt);
 
   g_free(app_name);
 
@@ -533,11 +482,7 @@ set_as_default_clicked(GtkWidget* GOL_UNUSED_ARG(widget), gpointer user_data) {
   gchar* name;
   if (!get_tree_model_from_selection(&name, selection)) return;
 
-  bool
-  is_selection_name(const DISPLAY_PLUGIN* dp) {
-    return !g_ascii_strcasecmp(dp->name(), name);
-  }
-  DISPLAY_PLUGIN* const dp = find_display_plugin(is_selection_name);
+  DISPLAY_PLUGIN* const dp = find_display_plugin(name);
   if (dp) {
     current_display = dp;
     set_config_string("default_display", name);
@@ -553,11 +498,7 @@ parameter_focus_out(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(
   gchar* name;
   if (!get_tree_model_from_selection(&name, selection)) return FALSE;
 
-  bool
-  is_selection_name(const DISPLAY_PLUGIN* dp) {
-    return !g_ascii_strcasecmp(dp->name(), name);
-  }
-  DISPLAY_PLUGIN* const dp = find_display_plugin(is_selection_name);
+  DISPLAY_PLUGIN* const dp = find_display_plugin(name);
   if (dp) {
     GtkWidget* const entry = (GtkWidget*) get_data_as_object(user_data, "parameter");
     const gchar* param = gtk_entry_get_text(GTK_ENTRY(entry));
@@ -574,11 +515,7 @@ preview_clicked(GtkWidget* GOL_UNUSED_ARG(widget), gpointer user_data) {
   gchar* name;
   if (!get_tree_model_from_selection(&name, selection)) return;
 
-  bool
-  is_selection_name(const DISPLAY_PLUGIN* dp) {
-    return !g_ascii_strcasecmp(dp->name(), name);
-  }
-  DISPLAY_PLUGIN* const dp = find_display_plugin(is_selection_name);
+  DISPLAY_PLUGIN* const dp = find_display_plugin(name);
   if (dp) {
     NOTIFICATION_INFO* const ni = g_new0(NOTIFICATION_INFO, 1);
     ni->title = g_strdup("Preview Display");
@@ -639,11 +576,7 @@ subscriber_enable_toggled(
     "insert into subscriber(name, enable) values('%q', %d)",
     name, enable ? 1 : 0);
 
-  bool
-  is_model_name(const SUBSCRIBE_PLUGIN* sp) {
-    return !g_ascii_strcasecmp(sp->name(), name);
-  }
-  SUBSCRIBE_PLUGIN* const sp = find_subscribe_plugin(is_model_name);
+  SUBSCRIBE_PLUGIN* const sp = find_subscribe_plugin(name);
   if (sp) {
     enable ? sp->start() : sp->stop();
   }
@@ -665,23 +598,18 @@ notification_tree_selection_changed(GtkTreeSelection* GOL_UNUSED_ARG(selection),
   int cbx1_index = -1;
   int cbx2_index = -1;
 
-  void
-  create_combo_boxes(sqlite3_stmt* const stmt) {
-    if (sqlite3_step(stmt) != SQLITE_ROW) return;
+  sqlite3_stmt* const stmt = prepare_sqlite3(
+      "select enable, display from application"
+      " where app_name = '%q' and name = '%q'", app_name, name);
+  if (sqlite3_step(stmt) == SQLITE_ROW) {
     cbx1_index = sqlite3_column_int(stmt, 0) != 0 ? 0 : 1;
-    char* const display = (char*) sqlite3_column_text(stmt, 1);
-    bool
-    is_display(const DISPLAY_PLUGIN* dp) {
-      return !g_ascii_strcasecmp(dp->name(), display);
-    }
-    DISPLAY_PLUGIN* const dp = find_display_plugin(is_display);
+    const char* const display = (const char*) sqlite3_column_text(stmt, 1);
+    DISPLAY_PLUGIN* const dp = find_display_plugin(display);
     if (dp) {
       cbx2_index = g_list_index(display_plugins, dp);
     }
   }
-  statement_sqlite3(create_combo_boxes,
-      "select enable, display from application"
-      " where app_name = '%q' and name = '%q'", app_name, name);
+  sqlite3_finalize(stmt);
 
   combo_box_set_active_as_object(user_data, "enable", cbx1_index);
   combo_box_set_active_as_object(user_data, "display", cbx2_index);
@@ -953,14 +881,13 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
     gtk_box_pack_end(GTK_BOX(hbox), label, FALSE, FALSE, 0);
     */
 
-    void
-    append_display_plugins(DISPLAY_PLUGIN* dp) {
+    for (GList* l = display_plugins; l; l = l->next) {
+      DISPLAY_PLUGIN* const dp = (DISPLAY_PLUGIN*) l->data;
       GtkTreeIter iter = list_store_set_after_append(
           GTK_LIST_STORE(model), 0, dp->name(), -1);
       if (dp == current_display)
         gtk_tree_selection_select_iter(select, &iter);
     }
-    foreach_display_plugin(append_display_plugins);
   }
 
   {
@@ -1058,15 +985,14 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
         sqlite3_finalize(stmt);
       }
 
-      void
-      append_display_plugins(DISPLAY_PLUGIN* dp) {
+      for (GList* l = display_plugins; l; l = l->next) {
+        DISPLAY_PLUGIN* const dp = (DISPLAY_PLUGIN*) l->data;
 #if USE_GTK3
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combobox), dp->name());
 #else
         gtk_combo_box_append_text(GTK_COMBO_BOX(combobox), dp->name());
 #endif
       }
-      foreach_display_plugin(append_display_plugins);
     }
   }
 
@@ -1144,15 +1070,14 @@ settings_clicked(GtkWidget* GOL_UNUSED_ARG(widget), GdkEvent* GOL_UNUSED_ARG(eve
         gtk_tree_view_column_new_with_attributes(
           "Description", gtk_cell_renderer_text_new(), "markup", 2, NULL));
 
-    void
-    append_subscribe_plugins(SUBSCRIBE_PLUGIN* sp) {
+    for (GList* l = subscribe_plugins; l; l = l->next) {
+      SUBSCRIBE_PLUGIN* const sp = (SUBSCRIBE_PLUGIN*) l->data;
       list_store_set_after_append(GTK_LIST_STORE(model),
           0, get_subscriber_enabled(sp->name()),
           1, sp->name(),
           2, sp->description(),
           -1);
     }
-    foreach_subscribe_plugin(append_subscribe_plugins);
   }
 
   {
@@ -1326,11 +1251,7 @@ raise_notification(const CLIENT_INFO ci, NOTIFICATION_INFO* const ni) {
   DISPLAY_PLUGIN* cp = NULL;
   // Received name.
   if (ci.notification_display_name) {
-    bool
-    is_ndn(const DISPLAY_PLUGIN* dp) {
-      return !g_ascii_strcasecmp(dp->name(), ci.notification_display_name);
-    }
-    cp = find_display_plugin(is_ndn);
+    cp = find_display_plugin(ci.notification_display_name);
   }
 
   // Lookup application default notification name.
@@ -1341,11 +1262,7 @@ raise_notification(const CLIENT_INFO ci, NOTIFICATION_INFO* const ni) {
       ci.application_name, ci.notification_name);
     if (sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0)) {
       const char* const adn = (const char*) sqlite3_column_text(stmt, 1);
-      bool
-      is_adn(const DISPLAY_PLUGIN* dp) {
-        return !g_ascii_strcasecmp(dp->name(), adn);
-      }
-      cp = find_display_plugin(is_adn);
+      cp = find_display_plugin(adn);
     }
     sqlite3_finalize(stmt);
   }
@@ -1353,11 +1270,7 @@ raise_notification(const CLIENT_INFO ci, NOTIFICATION_INFO* const ni) {
   // Lookup system default notification name.
   if (!cp) {
     const char* const sdn = get_config_string("default_display", "Fog");
-    bool
-    is_sdn(const DISPLAY_PLUGIN* dp) {
-      return !g_ascii_strcasecmp(dp->name(), sdn);
-    }
-    cp = find_display_plugin_or(is_sdn, current_display);
+    cp = find_display_plugin_or(sdn, current_display);
   }
 
   ni->timeout = get_config_value("default_timeout", 5000)/10;
@@ -1593,16 +1506,13 @@ gntp_recv_proc(gpointer user_data) {
           }
         }
 
-        int exist = 0;
-        void
-        get_count(sqlite3_stmt* const stmt) {
-          exist = sqlite3_step(stmt) == SQLITE_ROW
-            ? (gboolean) sqlite3_column_int(stmt, 0)
-            : 0;
-        }
-        statement_sqlite3(get_count,
+        sqlite3_stmt* const stmt = prepare_sqlite3(
           "select count(*) from application where app_name = '%q' and name = '%q'",
           application_name, notification_name);
+        const int exist = sqlite3_step(stmt) == SQLITE_ROW
+          ? (gboolean) sqlite3_column_int(stmt, 0)
+          : 0;
+        sqlite3_finalize(stmt);
 
         if (!exist) {
           exec_sqlite3(
@@ -1692,15 +1602,12 @@ gntp_recv_proc(gpointer user_data) {
       if (setting_dialog) {
         GtkTreeModel* const model
           = (GtkTreeModel*) get_data_as_object(setting_dialog, "notifications");
-        gchar* value;
-        void
-        get_current_timestamp(sqlite3_stmt* const stmt) {
-          value = g_strdup(
-              sqlite3_step(stmt) == SQLITE_ROW
-                ? (char*) sqlite3_column_text(stmt, 0)
-                : "");
-        }
-        statement_sqlite3(get_current_timestamp, "select current_timestamp");
+        sqlite3_stmt* const stmt = prepare_sqlite3("select current_timestamp");
+        gchar* const value = g_strdup(
+            sqlite3_step(stmt) == SQLITE_ROW
+              ? (char*) sqlite3_column_text(stmt, 0)
+              : "");
+        sqlite3_finalize(stmt);
         list_store_set_before_prepand(GTK_LIST_STORE(model),
             0, value,
             1, ni->title,
@@ -2118,13 +2025,12 @@ unload_config() {
 
 static void
 unload_display_plugins() {
-  void
-  close_plugin(DISPLAY_PLUGIN* dp) {
+  for (GList* l = display_plugins; l; l = l->next) {
+    DISPLAY_PLUGIN* const dp = (DISPLAY_PLUGIN*) l->data;
     if (dp->term) dp->term();
     g_module_close(dp->handle);
     g_free(dp);
   }
-  foreach_display_plugin(close_plugin);
   g_list_free(display_plugins);
   display_plugins = NULL;
 }
@@ -2215,13 +2121,12 @@ subscribe_show(NOTIFICATION_INFO* const ni) {
 
 static void
 unload_subscribe_plugins() {
-  void
-  close_plugin(SUBSCRIBE_PLUGIN* sp) {
+  for (GList* l = subscribe_plugins; l; l = l->next) {
+    SUBSCRIBE_PLUGIN* const sp = (SUBSCRIBE_PLUGIN*) l->data;
     if (sp->term) sp->term();
     g_module_close(sp->handle);
     g_free(sp);
   }
-  foreach_subscribe_plugin(close_plugin);
   g_list_free(subscribe_plugins);
   subscribe_plugins = NULL;
 }

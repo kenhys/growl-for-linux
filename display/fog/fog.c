@@ -143,18 +143,25 @@ label_size_allocate(GtkWidget* label, GtkAllocation* allocation, gpointer GOL_UN
   gtk_widget_set_size_request(label, allocation->width - 2, -1);
 }
 
+typedef struct {
+  GtkWidget* widget;
+  gint       nth;
+  gint       cnt;
+} NthGetterCtx;
+
+static void
+nth_getter(GtkWidget* const wid, gpointer data) {
+  NthGetterCtx* const ctx = (NthGetterCtx*) data;
+  if (ctx->cnt++ == ctx->nth) ctx->widget = wid;
+}
+
 static inline GtkWidget*
 get_container_nth_child(GtkContainer* const cont, const gint n) {
   if (!cont) return NULL;
 
-  GtkWidget* widget = NULL;
-  gint       cnt    = 0;
-  void
-  nth_getter(GtkWidget* const wid, gpointer GOL_UNUSED_ARG(user_data)) {
-    if (cnt++ == n) widget = wid;
-  }
-  gtk_container_foreach(cont, nth_getter, NULL);
-  return widget;
+  NthGetterCtx ctx = { NULL, n, 0 };
+  gtk_container_foreach(cont, nth_getter, &ctx);
+  return ctx.widget;
 }
 
 static inline GtkBox*
@@ -407,16 +414,18 @@ get_popup_skelton(NOTIFICATION_INFO* const ni) {
   return reset_display_info(create_popup_skelton(), ni);
 }
 
+static gint
+is_differ_pos(gconstpointer p, gconstpointer data) {
+  DISPLAY_INFO* const di = (DISPLAY_INFO*) data;
+  return ((const DISPLAY_INFO*) p)->pos == di->pos++;
+}
+
 G_MODULE_EXPORT gboolean
 display_show(NOTIFICATION_INFO* const ni) {
   DISPLAY_INFO* const di = get_popup_skelton(ni);
   if (!di) return FALSE;
 
-  gint
-  is_differ_pos(gconstpointer p, gconstpointer GOL_UNUSED_ARG(user_data)) {
-    return ((const DISPLAY_INFO*) p)->pos == di->pos++;
-  }
-  GList* const found = g_list_find_custom(notifications, NULL, is_differ_pos);
+  GList* const found = g_list_find_custom(notifications, di, is_differ_pos);
   if (found) --di->pos;
 
   const gint vert_count = screen_rect.height / 180;
@@ -461,20 +470,22 @@ display_init() {
   return TRUE;
 }
 
+static void
+deleter_wrapper(gpointer data, gpointer GOL_UNUSED_ARG(user_data)) {
+  free_display_info((DISPLAY_INFO*) data);
+}
+
+static void
+list_free_deep(GList* const list) {
+  g_list_foreach(list, deleter_wrapper, NULL);
+  g_list_free(list);
+}
+
 G_MODULE_EXPORT void
 display_term() {
   pango_font_description_free(font_sans12_desc);
   pango_font_description_free(font_sans8_desc);
 
-  void
-  list_free_deep(GList* const list) {
-    void
-    deleter_wrapper(gpointer data, gpointer GOL_UNUSED_ARG(user_data)) {
-      free_display_info((DISPLAY_INFO*) data);
-    }
-    g_list_foreach(list, deleter_wrapper, NULL);
-    g_list_free(list);
-  }
   list_free_deep(notifications);
   list_free_deep(popup_collections);
 
