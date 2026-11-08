@@ -180,7 +180,8 @@ read_all(int fd, char** ptr) {
     }
     *(end += r) = '\0';
     datalen += r;
-    if (r >= 4 && !strncmp(end - 4, "\r\n\r\n", 4)) break;
+    // Check the whole data, because "\r\n\r\n" may come in two recv() calls.
+    if (datalen >= 4 && !strncmp(end - 4, "\r\n\r\n", 4)) break;
 
     bufferlen += len;
     buf = (char*) safely_realloc(buf, bufferlen + 1);
