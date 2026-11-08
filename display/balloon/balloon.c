@@ -285,7 +285,7 @@ create_popup_skelton() {
   DISPLAY_INFO* const di = g_new0(DISPLAY_INFO, 1);
   if (!di) return NULL;
 
-  di->widget.popup = gtk_window_new(GTK_WINDOW_POPUP);
+  di->widget.popup = gol_popup_new();
   if (!di->widget.popup) {
     free_display_info(di);
     return NULL;
@@ -483,7 +483,7 @@ display_show(NOTIFICATION_INFO* const ni) {
   gtk_label_set_text(DISPLAY_TITLE_FIELD(di), di->ni->title);
   gtk_label_set_text(DISPLAY_TEXT_FIELD(di), di->ni->text);
 
-  gtk_window_move(GTK_WINDOW(di->widget.popup), di->x, di->y);
+  gol_popup_move(di->widget.popup, di->x, di->y);
   gtk_widget_show_all(di->widget.popup);
   g_timeout_add(10, display_animation_func, di);
 

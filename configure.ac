@@ -59,6 +59,31 @@ else
 fi
 AM_CONDITIONAL(USE_GTK3, test x"$with_gtk3" = xyes)
 
+dnl gtk-layer-shell puts popups at fixed positions on Wayland.  Without it,
+dnl gol falls back to XWayland on Wayland sessions.
+GTK_LAYER_SHELL_REQUIRED=0.5.0
+AC_ARG_WITH(gtk-layer-shell,
+            AS_HELP_STRING([--with-gtk-layer-shell[=@<:@no/auto/yes@:>@]],
+                           [Show popups natively on Wayland with gtk-layer-shell]),
+              [with_gtk_layer_shell=$withval],
+              [with_gtk_layer_shell="auto"])
+if test x$with_gtk3 != xyes ; then
+        if test x$with_gtk_layer_shell = xyes ; then
+                AC_MSG_ERROR([gtk-layer-shell needs --with-gtk3])
+        fi
+        with_gtk_layer_shell="no"
+fi
+if test x$with_gtk_layer_shell = xauto ; then
+        PKG_CHECK_EXISTS([gtk-layer-shell-0 >= $GTK_LAYER_SHELL_REQUIRED wayland-client],
+                         with_gtk_layer_shell="yes",
+                         with_gtk_layer_shell="no")
+fi
+if test x$with_gtk_layer_shell = xyes ; then
+        PKG_CHECK_MODULES(GTK_LAYER_SHELL, gtk-layer-shell-0 >= $GTK_LAYER_SHELL_REQUIRED)
+        PKG_CHECK_MODULES(WAYLAND_CLIENT, wayland-client)
+        AC_DEFINE(HAVE_GTK_LAYER_SHELL, [1], [Have gtk-layer-shell])
+fi
+
 dnl Prefer the Ayatana AppIndicator (libayatana-appindicator), the maintained
 dnl continuation of Canonical's deprecated libappindicator.  Same API, but a
 dnl different pkg-config module name and include dir.

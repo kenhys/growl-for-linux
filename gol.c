@@ -66,6 +66,10 @@
 # endif
 #endif
 
+#ifdef HAVE_GTK_LAYER_SHELL
+# include <wayland-client.h>
+#endif
+
 #define GNTP_OK_STRING_LITERAL(_version, _action)   \
   "GNTP/" _version " -OK NONE\r\n"                  \
   "Response-Action: " _action "\r\n\r\n"            \
@@ -2387,10 +2391,44 @@ destroy_udp_server(GIOChannel* const channel) {
   }
 }
 
+#ifdef HAVE_GTK_LAYER_SHELL
+static void
+registry_global(void* data, struct wl_registry* GOL_UNUSED_ARG(registry),
+    uint32_t GOL_UNUSED_ARG(name), const char* interface, uint32_t GOL_UNUSED_ARG(version)) {
+  if (!strcmp(interface, "zwlr_layer_shell_v1")) *(gboolean*) data = TRUE;
+}
+
+static void
+registry_global_remove(void* GOL_UNUSED_ARG(data), struct wl_registry* GOL_UNUSED_ARG(registry),
+    uint32_t GOL_UNUSED_ARG(name)) {
+}
+
+static gboolean
+has_layer_shell(struct wl_display* const display) {
+  static const struct wl_registry_listener listener = {
+    registry_global,
+    registry_global_remove,
+  };
+  gboolean found = FALSE;
+  struct wl_registry* const registry = wl_display_get_registry(display);
+  wl_registry_add_listener(registry, &listener, &found);
+  wl_display_roundtrip(display);
+  wl_registry_destroy(registry);
+  return found;
+}
+#endif
+
 static void
 select_gdk_backend(void) {
 #if GTK_CHECK_VERSION(3, 10, 0)
   if (g_getenv("GDK_BACKEND")) return;
+#ifdef HAVE_GTK_LAYER_SHELL
+  struct wl_display* const display = wl_display_connect(NULL);
+  if (!display) return;
+  const gboolean found = has_layer_shell(display);
+  wl_display_disconnect(display);
+  if (found) return;
+#endif
   // Popups need fixed positions on the screen, and Wayland gives them only via layer shell.
   gdk_set_allowed_backends("x11,*");
 #endif

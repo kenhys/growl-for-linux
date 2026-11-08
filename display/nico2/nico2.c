@@ -125,7 +125,7 @@ display_animation_func(gpointer data) {
   }
 
   if (!di->hover) di->x -= 10;
-  gdk_window_move(gtk_widget_get_window(di->popup), di->x, di->y);
+  gol_popup_move(di->popup, di->x, di->y);
   return TRUE;
 }
 
@@ -161,7 +161,7 @@ display_show(NOTIFICATION_INFO* ni) {
 
   notifications = g_list_append(notifications, di);
 
-  di->popup = gtk_window_new(GTK_WINDOW_POPUP);
+  di->popup = gol_popup_new();
   gtk_window_set_title(GTK_WINDOW(di->popup), "growl-for-linux");
   gtk_window_set_resizable(GTK_WINDOW(di->popup), TRUE);
   gtk_window_set_decorated(GTK_WINDOW(di->popup), FALSE);
@@ -250,7 +250,7 @@ display_show(NOTIFICATION_INFO* ni) {
   g_signal_connect(G_OBJECT(ebox), "enter-notify-event", G_CALLBACK(display_enter), di);
   g_signal_connect(G_OBJECT(ebox), "leave-notify-event", G_CALLBACK(display_leave), di);
 
-  gtk_window_move(GTK_WINDOW(di->popup), di->x, di->y);
+  gol_popup_move(di->popup, di->x, di->y);
   gtk_widget_show_all(di->popup);
 
   gtk_widget_set_size_request(fixed, di->width, di->height);
