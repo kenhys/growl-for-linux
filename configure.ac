@@ -84,31 +84,77 @@ if test x$with_gtk_layer_shell = xyes ; then
         AC_DEFINE(HAVE_GTK_LAYER_SHELL, [1], [Have gtk-layer-shell])
 fi
 
-dnl Prefer the Ayatana AppIndicator (libayatana-appindicator), the maintained
-dnl continuation of Canonical's deprecated libappindicator.  Same API, but a
-dnl different pkg-config module name and include dir.
+dnl --with-appindicator selects the AppIndicator library, so that the build
+dnl (for example debian/rules) shows which one is used.
+dnl   ayatana-glib: libayatana-appindicator-glib.  It replaces the deprecated
+dnl                 libayatana-appindicator and uses GMenu instead of GtkMenu.
+dnl   ayatana:      the Ayatana AppIndicator (libayatana-appindicator).
+dnl   appindicator: Canonical's libappindicator.
+dnl The last two have the same API, but a different pkg-config module name and
+dnl include dir.  auto tries them in this order.
+AYATANA_APPINDICATOR_GLIB_MODULE=ayatana-appindicator-glib
 APPINDICATOR_REQUIRED=0.4.92
 AC_ARG_ENABLE(appindicator,
               AS_HELP_STRING([--enable-appindicator[=@<:@no/auto/yes@:>@]],
                              [Build support for application indicators ]),
               [enable_appindicator=$enableval],
               [enable_appindicator="auto"])
-if test x$enable_appindicator = xauto ; then
-        PKG_CHECK_EXISTS([$AYATANA_APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
-                         [enable_appindicator="yes"
-                          APPINDICATOR_MODULE="$AYATANA_APPINDICATOR_MODULE"],
-                         [PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
-                                           enable_appindicator="yes",
-                                           enable_appindicator="no")])
+AC_ARG_WITH(appindicator,
+            AS_HELP_STRING([--with-appindicator=@<:@auto/ayatana-glib/ayatana/appindicator@:>@],
+                           [Select the AppIndicator library @<:@default=auto@:>@]),
+              [with_appindicator=$withval],
+              [with_appindicator="auto"])
+case "$with_appindicator" in
+auto|yes)
+        appindicator_modules="$AYATANA_APPINDICATOR_GLIB_MODULE $AYATANA_APPINDICATOR_MODULE $APPINDICATOR_MODULE" ;;
+ayatana-glib)
+        appindicator_modules="$AYATANA_APPINDICATOR_GLIB_MODULE" ;;
+ayatana)
+        appindicator_modules="$AYATANA_APPINDICATOR_MODULE" ;;
+appindicator)
+        appindicator_modules="$APPINDICATOR_MODULE" ;;
+no)
+        appindicator_modules="" ;;
+*)
+        AC_MSG_ERROR([unknown value for --with-appindicator: $with_appindicator]) ;;
+esac
+if test "x$with_appindicator" = xno ; then
+        if test x$enable_appindicator = xyes ; then
+                AC_MSG_ERROR([--enable-appindicator conflicts with --without-appindicator])
+        fi
+        enable_appindicator="no"
+elif test "x$with_appindicator" != xauto ; then
+        if test x$enable_appindicator = xno ; then
+                AC_MSG_ERROR([--with-appindicator=$with_appindicator conflicts with --disable-appindicator])
+        fi
+        enable_appindicator="yes"
+fi
+if test x$enable_appindicator != xno ; then
+        AC_MSG_CHECKING([for AppIndicator library])
+        found_appindicator_module=""
+        for module in $appindicator_modules ; do
+                PKG_CHECK_EXISTS([$module >= $APPINDICATOR_REQUIRED],
+                                 [found_appindicator_module="$module"
+                                  break])
+        done
+        if test -n "$found_appindicator_module" ; then
+                AC_MSG_RESULT([$found_appindicator_module])
+                enable_appindicator="yes"
+                APPINDICATOR_MODULE="$found_appindicator_module"
+        elif test x$enable_appindicator = xyes ; then
+                AC_MSG_RESULT([no])
+                AC_MSG_ERROR([no AppIndicator library is installed (tried: $appindicator_modules)])
+        else
+                AC_MSG_RESULT([no])
+                enable_appindicator="no"
+        fi
 fi
 if test x$enable_appindicator = xyes ; then
-        PKG_CHECK_EXISTS([$AYATANA_APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
-                         [APPINDICATOR_MODULE="$AYATANA_APPINDICATOR_MODULE"])
-        PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],,
-                         AC_MSG_ERROR([neither $AYATANA_APPINDICATOR_MODULE nor $APPINDICATOR_MODULE is installed]))
         PKG_CHECK_MODULES(APP_INDICATOR,
                           $APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED)
-        if test "x$APPINDICATOR_MODULE" = "x$AYATANA_APPINDICATOR_MODULE" ; then
+        if test "x$APPINDICATOR_MODULE" = "x$AYATANA_APPINDICATOR_GLIB_MODULE" ; then
+                AC_DEFINE(HAVE_AYATANA_APP_INDICATOR_GLIB, [1], [Use Ayatana AppIndicator for GLib])
+        elif test "x$APPINDICATOR_MODULE" = "x$AYATANA_APPINDICATOR_MODULE" ; then
                 AC_DEFINE(HAVE_AYATANA_APP_INDICATOR, [1], [Use Ayatana AppIndicator])
         fi
         AC_DEFINE(HAVE_APP_INDICATOR, [1], [Have AppIndicator])

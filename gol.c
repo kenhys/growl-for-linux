@@ -59,7 +59,9 @@
 #include "compatibility.h"
 
 #ifdef HAVE_APP_INDICATOR
-# ifdef HAVE_AYATANA_APP_INDICATOR
+# if defined(HAVE_AYATANA_APP_INDICATOR_GLIB)
+#  include <ayatana-appindicator.h>
+# elif defined(HAVE_AYATANA_APP_INDICATOR)
 #  include <libayatana-appindicator/app-indicator.h>
 # else
 #  include <libappindicator/app-indicator.h>
@@ -1789,7 +1791,92 @@ disabled_pixbuf(GdkPixbuf *pixbuf) {
 }
 */
 
-#ifdef HAVE_APP_INDICATOR
+#if defined(HAVE_AYATANA_APP_INDICATOR_GLIB)
+static GMenu* status_section;
+
+static void
+set_status_menu_label(const gchar* const label) {
+  // A GMenu item can not be changed in place, so replace it.
+  if (g_menu_model_get_n_items(G_MENU_MODEL(status_section)))
+    g_menu_remove(status_section, 0);
+  g_menu_insert(status_section, 0, label, "indicator.toggle");
+}
+
+static void
+gol_status_toggle(GSimpleAction* GOL_UNUSED_ARG(action), GVariant* GOL_UNUSED_ARG(parameter), gpointer GOL_UNUSED_ARG(user_data)) {
+  switch (gol_status)
+  {
+    case GOL_STATUS_NORMAL:
+      gol_status = GOL_STATUS_DND;
+      app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
+      set_status_menu_label("Switch to on");
+      break;
+    case GOL_STATUS_DND:
+      gol_status = GOL_STATUS_NORMAL;
+      app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ATTENTION);
+      set_status_menu_label("Switch to off");
+      break;
+  }
+}
+
+static void
+settings_activated(GSimpleAction* GOL_UNUSED_ARG(action), GVariant* GOL_UNUSED_ARG(parameter), gpointer GOL_UNUSED_ARG(user_data)) {
+  settings_clicked(NULL, NULL, NULL);
+}
+
+static void
+about_activated(GSimpleAction* GOL_UNUSED_ARG(action), GVariant* GOL_UNUSED_ARG(parameter), gpointer GOL_UNUSED_ARG(user_data)) {
+  about_click(NULL, NULL);
+}
+
+static void
+exit_activated(GSimpleAction* GOL_UNUSED_ARG(action), GVariant* GOL_UNUSED_ARG(parameter), gpointer GOL_UNUSED_ARG(user_data)) {
+  exit_clicked(NULL, NULL, NULL);
+}
+
+static void
+create_menu() {
+  gchar* const theme_path = g_build_filename(DATADIR, "data", NULL);
+  indicator = app_indicator_new_with_path("Growl", "icon_dnd",
+                                          APP_INDICATOR_CATEGORY_APPLICATION_STATUS, theme_path);
+  g_free(theme_path);
+
+  static const GActionEntry entries[] = {
+    { "toggle",      gol_status_toggle,  NULL, NULL, NULL, { 0 } },
+    { "preferences", settings_activated, NULL, NULL, NULL, { 0 } },
+    { "about",       about_activated,    NULL, NULL, NULL, { 0 } },
+    { "quit",        exit_activated,     NULL, NULL, NULL, { 0 } },
+  };
+  GSimpleActionGroup* const actions = g_simple_action_group_new();
+  g_action_map_add_action_entries(G_ACTION_MAP(actions), entries, G_N_ELEMENTS(entries), NULL);
+
+  // Sections are shown with separators between them.
+  GMenu* const menu = g_menu_new();
+  status_section = g_menu_new();
+  set_status_menu_label("Switch to off");
+  g_menu_append_section(menu, NULL, G_MENU_MODEL(status_section));
+
+  GMenu* const section = g_menu_new();
+  g_menu_append(section, "Preferences", "indicator.preferences");
+  g_menu_append(section, "About", "indicator.about");
+  g_menu_append_section(menu, NULL, G_MENU_MODEL(section));
+  g_object_unref(section);
+
+  GMenu* const quit_section = g_menu_new();
+  g_menu_append(quit_section, "Quit", "indicator.quit");
+  g_menu_append_section(menu, NULL, G_MENU_MODEL(quit_section));
+  g_object_unref(quit_section);
+
+  app_indicator_set_menu(indicator, menu);
+  g_object_unref(menu);
+  app_indicator_set_actions(indicator, actions);
+  g_object_unref(actions);
+
+  app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ATTENTION);
+  app_indicator_set_icon(indicator, "icon_dnd", NULL);
+  app_indicator_set_attention_icon(indicator, "icon", NULL);
+}
+#elif defined(HAVE_APP_INDICATOR)
 static void
 gol_status_toggle(GtkMenuItem* menu_item, gpointer GOL_UNUSED_ARG(user_data)) {
   switch (gol_status)
@@ -1919,6 +2006,10 @@ destroy_menu() {
   if (popup_menu) {
       gtk_widget_destroy(popup_menu);
   }
+#ifdef HAVE_AYATANA_APP_INDICATOR_GLIB
+  g_clear_object(&status_section);
+  g_clear_object(&indicator);
+#endif
 #ifndef HAVE_APP_INDICATOR
   if (status_icon) {
       gtk_status_icon_set_visible(GTK_STATUS_ICON(status_icon), FALSE);
