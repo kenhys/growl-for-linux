@@ -138,10 +138,10 @@ display_animation_func(gpointer data) {
 static gboolean
 display_expose(GtkWidget *widget, GdkEventExpose *event, gpointer GOL_UNUSED_ARG(data)) {
   gdk_window_clear_area(
-    widget->window,
+    gtk_widget_get_window(widget),
     event->area.x, event->area.y, event->area.width, event->area.height);
   gdk_draw_pixbuf(
-    widget->window,
+    gtk_widget_get_window(widget),
     widget->style->fg_gc[GTK_STATE_NORMAL],
     pixbuf,
     0, 0,

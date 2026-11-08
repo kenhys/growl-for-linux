@@ -122,7 +122,7 @@ display_animation_func(gpointer data) {
 
   if (di->offset < 160) {
     di->offset += 2;
-    gdk_window_move_resize(di->widget.popup->window, di->x, di->y - di->offset, 180, di->offset);
+    gdk_window_move_resize(gtk_widget_get_window(di->widget.popup), di->x, di->y - di->offset, 180, di->offset);
   }
 
   if (di->timeout < 30) {

@@ -113,7 +113,7 @@ display_animation_func(gpointer data) {
   }
 
   if (!di->hover) di->x -= 10;
-  gdk_window_move(di->popup->window, di->x, di->y);
+  gdk_window_move(gtk_widget_get_window(di->popup), di->x, di->y);
   return TRUE;
 }
 
@@ -186,7 +186,7 @@ display_show(NOTIFICATION_INFO* ni) {
 
   if (image)
     gtk_fixed_move(GTK_FIXED(fixed), image, 0, di->height / 2 - 16);
-  GdkBitmap* bitmap = gdk_pixmap_new(di->popup->window, di->width, di->height, 1);
+  GdkBitmap* bitmap = gdk_pixmap_new(gtk_widget_get_window(di->popup), di->width, di->height, 1);
   GdkGC *gc = gdk_gc_new(GDK_DRAWABLE(bitmap));
   GdkColormap* colormap = gdk_colormap_get_system();
   gdk_gc_set_colormap(gc, colormap);
@@ -209,8 +209,8 @@ display_show(NOTIFICATION_INFO* ni) {
   gtk_widget_show_all(di->popup);
 
   gtk_widget_set_size_request(fixed, di->width, di->height);
-  gdk_window_set_back_pixmap(di->popup->window, NULL, FALSE);
-  gdk_window_shape_combine_mask(di->popup->window, bitmap, 0, 0);
+  gdk_window_set_back_pixmap(gtk_widget_get_window(di->popup), NULL, FALSE);
+  gdk_window_shape_combine_mask(gtk_widget_get_window(di->popup), bitmap, 0, 0);
 
   g_object_unref(gc);
   g_object_unref(layout);
