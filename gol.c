@@ -59,7 +59,11 @@
 #include "compatibility.h"
 
 #ifdef HAVE_APP_INDICATOR
-#include <libappindicator/app-indicator.h>
+# ifdef HAVE_AYATANA_APP_INDICATOR
+#  include <libayatana-appindicator/app-indicator.h>
+# else
+#  include <libappindicator/app-indicator.h>
+# endif
 #endif
 
 #define GNTP_OK_STRING_LITERAL(_version, _action)   \

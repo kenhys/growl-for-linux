@@ -51,12 +51,17 @@ if test x$with_gtk3 = xyes ; then
         PKG_CHECK_MODULES(GTK3, gtk+-3.0 >= $REQUIRED_GTK3)
         AC_DEFINE(USE_GTK3, [1], [Use GTK+3 instead of GTK+2])
         APPINDICATOR_MODULE=appindicator3-0.1
+        AYATANA_APPINDICATOR_MODULE=ayatana-appindicator3-0.1
 else
         PKG_CHECK_MODULES(GTK2, gtk+-2.0)
         APPINDICATOR_MODULE=appindicator-0.1
+        AYATANA_APPINDICATOR_MODULE=ayatana-appindicator-0.1
 fi
 AM_CONDITIONAL(USE_GTK3, test x"$with_gtk3" = xyes)
 
+dnl Prefer the Ayatana AppIndicator (libayatana-appindicator), the maintained
+dnl continuation of Canonical's deprecated libappindicator.  Same API, but a
+dnl different pkg-config module name and include dir.
 APPINDICATOR_REQUIRED=0.4.92
 AC_ARG_ENABLE(appindicator,
               AS_HELP_STRING([--enable-appindicator[=@<:@no/auto/yes@:>@]],
@@ -64,15 +69,23 @@ AC_ARG_ENABLE(appindicator,
               [enable_appindicator=$enableval],
               [enable_appindicator="auto"])
 if test x$enable_appindicator = xauto ; then
-        PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
-                         enable_appindicator="yes",
-                         enable_appindicator="no")
+        PKG_CHECK_EXISTS([$AYATANA_APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
+                         [enable_appindicator="yes"
+                          APPINDICATOR_MODULE="$AYATANA_APPINDICATOR_MODULE"],
+                         [PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
+                                           enable_appindicator="yes",
+                                           enable_appindicator="no")])
 fi
 if test x$enable_appindicator = xyes ; then
+        PKG_CHECK_EXISTS([$AYATANA_APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],
+                         [APPINDICATOR_MODULE="$AYATANA_APPINDICATOR_MODULE"])
         PKG_CHECK_EXISTS([$APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED],,
-                         AC_MSG_ERROR([$APPINDICATOR_MODULE is not installed]))
+                         AC_MSG_ERROR([neither $AYATANA_APPINDICATOR_MODULE nor $APPINDICATOR_MODULE is installed]))
         PKG_CHECK_MODULES(APP_INDICATOR,
                           $APPINDICATOR_MODULE >= $APPINDICATOR_REQUIRED)
+        if test "x$APPINDICATOR_MODULE" = "x$AYATANA_APPINDICATOR_MODULE" ; then
+                AC_DEFINE(HAVE_AYATANA_APP_INDICATOR, [1], [Use Ayatana AppIndicator])
+        fi
         AC_DEFINE(HAVE_APP_INDICATOR, [1], [Have AppIndicator])
 fi
 AM_CONDITIONAL(HAVE_APP_INDICATOR, test x"$enable_appindicator" = xyes)
